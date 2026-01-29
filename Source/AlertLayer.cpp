@@ -18,12 +18,18 @@
 
 #include "AlertLayer.h"
 #include "ButtonSprite.h"
+#include "EventDispatcher.h"
+#include "EventListenerKeyboard.h"
 #include "MenuItemSpriteExtra.h"
+
 
 #include "2d/Menu.h"
 #include "2d/Label.h"
 #include "ui/UIScale9Sprite.h"
+
 #include "base/Director.h"
+#include "base/EventDispatcher.h"
+
 
 #include <string>
 #include "GameToolbox/getTextureString.h"
@@ -35,10 +41,11 @@ bool AlertLayer::init(std::string_view title, std::string_view desc, std::string
 	if (!PopupLayer::init()) 
 		return false;
 
+		initKeyboardListener();
 	const auto& winSize = Director::getInstance()->getWinSize();
 
 	auto descLabel = Label::createWithBMFont(GameToolbox::getTextureString("chatFont.fnt"), desc, TextHAlignment::CENTER);
-	width = descLabel->getContentSize().width + 32;
+	width = descLabel->getContentSize().width + 132;
 	// descLabel->setAnchorPoint({0.5, 1});
 	descLabel->setDimensions(width, 0);
 	descLabel->setPosition(Point(winSize / 2));
@@ -60,7 +67,7 @@ bool AlertLayer::init(std::string_view title, std::string_view desc, std::string
 	this->_mainLayer->addChild(titleLabel);
 
 	auto menu = Menu::create();
-	this->_mainLayer->addChild(menu);
+	this->_mainLayer->addChild(menu,1);
 	menu->setPositionY((winSize.height - descHeight) / 2 + 60);
 	
 	auto _btnCallback = btn1Callback ? btn1Callback : [this](Node*) {this->close(); };
@@ -78,9 +85,25 @@ bool AlertLayer::init(std::string_view title, std::string_view desc, std::string
 	}
 	menu->setPositionY(descHeight - 32);
 
-	return true;
+	_mainLayer->setPosition({-1,-6});
+	this->setLocalZOrder(this->getLocalZOrder()+this->getLocalZOrder());
+	return true; 
 }
 
+void AlertLayer::initKeyboardListener() {
+	auto listener = ax::EventListenerKeyboard::create();
+	listener->onKeyPressed = [this](EventKeyboard::KeyCode keyCode, Event* event){
+		if (keyCode == EventKeyboard::KeyCode::KEY_BACK) {
+			keyBackClicked();
+		}
+	};
+	_eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
+} 
+
+void AlertLayer::keyBackClicked() {
+
+	_onExitCallback();
+}
 AlertLayer* AlertLayer::create(std::string_view title, std::string_view desc, std::string_view btn1, std::string_view btn2, float width, std::function<void(Node*)> btn1Callback, std::function<void(Node*)> btn2Callback)
 {
 	auto pRet = new(std::nothrow) AlertLayer();

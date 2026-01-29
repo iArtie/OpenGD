@@ -24,11 +24,16 @@ class MenuItemSpriteExtra;
 class AlertLayer : public PopupLayer {
 private:
 	bool init(std::string_view title, std::string_view desc, std::string_view btn1, std::string_view btn2, float width, std::function<void(Node*)> btn1Callback, std::function<void(Node*)> btn2Callback);
-
+    ax::Layer* m_mainLayer;
+    
+    Node* m_scene;
+    int m_ZOrder;
+    bool m_noElasticity;
 	MenuItemSpriteExtra* _btn1;
 	MenuItemSpriteExtra* _btn2;
 
 public:
+    void initKeyboardListener(); 
 	static AlertLayer* create(std::string_view title, std::string_view desc, std::string_view btn1, std::string_view btn2, float width, std::function<void(Node*)> btn1Callback, std::function<void(Node*)> btn2Callback);
 	static AlertLayer* create(std::string_view title, std::string_view desc, std::string_view btn1, std::string_view btn2, std::function<void(Node*)> btn1Callback, std::function<void(Node*)> btn2Callback);
 	static AlertLayer* create(std::string_view title, std::string_view desc, std::string_view btn1, float width, std::function<void(Node*)> btn1Callback);
@@ -36,6 +41,7 @@ public:
 	static AlertLayer* create(std::string_view title, std::string_view desc, float width);
 	static AlertLayer* create(std::string_view title, std::string_view desc);
 
+    void keyBackClicked();
 	void setBtn1Callback(std::function<void(Node*)> btn1Callback);
 	void setBtn2Callback(std::function<void(Node*)> btn2Callback);
 };

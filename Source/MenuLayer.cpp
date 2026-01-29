@@ -101,8 +101,8 @@ bool MenuLayer::init()
 	}
 
 
-	//_mgl = MenuGameLayer::create();
-	//addChild(_mgl, -1);
+	_mgl = MenuGameLayer::create();
+	addChild(_mgl, -1);
 
 	float offsetScale = 1.13F;
 	const auto& winSize = Director::getInstance()->getWinSize();
@@ -178,6 +178,11 @@ bool MenuLayer::init()
 	
 
 
+	auto labelTest = Label::createWithBMFont("goldFont.fnt","Hola esto es una prueba xd");
+
+     labelTest->setPosition(winSize/2);
+	addChild(labelTest);
+
 	auto achievementsBtn = MenuItemSpriteExtra::create("GJ_achBtn_001.png", [&](Node* btn) {
 		auto endlevel = EndLevelLayer::create(2, 51, 10, false, 10);
 		addChild(endlevel);
@@ -237,6 +242,13 @@ bool MenuLayer::init()
 	_profileLabel->setScale(.8); //no setScale in 2.1 but oversized for some reason in opengd
 	mainButtonMenu->addChild(_profileLabel);
 	
+
+	 auto director = Director::getInstance();
+    auto visibleSize = director->getVisibleSize();
+    auto origin = director->getVisibleOrigin();
+
+	
+
 	//TODO: add option to game manager when profile is done
 	if(true)
 	{
@@ -245,28 +257,87 @@ bool MenuLayer::init()
 		addChild(spr);
 	}
 	
+	initKeyboardListener();
+	auto closeButtonSpr = Sprite::createWithSpriteFrameName("GJ_closeBtn_001.png");
+    closeButtonSpr->setScale(.75f);
+	auto closeMenu = Menu::create();
+	auto closeButton = MenuItemSpriteExtra::create(
+    closeButtonSpr,
+    [&](Node* btn){
+		keyBackClicked(btn);
+	 }
+);
+
+closeMenu->addChild(closeButton);
+closeMenu->setAnchorPoint(Vec2(0, 1)); // arriba-izquierda del botón
+closeMenu->setPosition(Vec2(
+    origin.x + 18.0f,
+    origin.y + visibleSize.height - 18.0f
+));
+ 
+	
+
+    
+
+	addChild(closeMenu);
 	auto dailyRewardBtn = MenuItemSpriteExtra::create("GJ_dailyRewardBtn_001.png", [](Node*){RewardsPage::create()->show();});
 	dailyRewardBtn->setPosition(bottomMenu->convertToNodeSpace({winSize.width - 40.0f, winSize.height / 2 + 20.0f}));
 	bottomMenu->addChild(dailyRewardBtn);
 
-	GameToolbox::onKeyDown(true, this, [&](EventKeyboard::KeyCode code, Event*)
-	{
-		if (code == EventKeyboard::KeyCode::KEY_SPACE)
-		{
-			auto scene = LevelSelectLayer::scene(0);
-			Director::getInstance()->pushScene(TransitionFade::create(0.5f, scene));
-		} else if (code == EventKeyboard::KeyCode::KEY_ESCAPE)
-		{
-			auto alert = AlertLayer::create("Quit Game", "Are you sure you want to Quit?", "Cancel", "Yes", nullptr, nullptr);
-			alert->setBtn2Callback([](Node*)
-			{
-				GameManager::getInstance()->save();
-				Director::getInstance()->end();
-			});
-			alert->show();
-		}
-	});
-
+    _alertClosed = true;
 
 	return true;
 }
+
+void MenuLayer::initKeyboardListener() {
+    
+    auto listener = EventListenerKeyboard::create();
+    listener->onKeyPressed = [this](EventKeyboard::KeyCode keyCode, Event* event){
+        if(keyCode == EventKeyboard::KeyCode::KEY_BACK) {
+    
+			if(_alertClosed)
+			{
+
+               this->keyBackClicked(this);
+			   _alertClosed = false;
+			}
+            /* if (!this->_alertOpen) {
+                this->keyBackClicked(this);
+            } */
+        }
+    };
+
+
+    _eventDispatcher->addEventListenerWithFixedPriority(listener, -1);
+
+    _keyboardListener = listener; 
+}
+
+
+void MenuLayer::keyBackClicked(Node* sender) {
+    /* this->_alertOpen = true;  */
+
+    auto alert = AlertLayer::create("Quit Game", "Are you sure you want to quit?", "Cancel", "Yes", nullptr, nullptr);
+
+    alert->setBtn1Callback([=](Node*){
+        alert->close();
+        _alertClosed = true;
+        _keyboardListener->setEnabled(true);
+    });
+
+	alert->setOnExitCallback([this]() {
+		_alertClosed = true;
+		_keyboardListener->setEnabled(true);
+	});
+
+    alert->setBtn2Callback([=](Node*){
+        GameManager::getInstance()->save();
+        Director::getInstance()->end();
+    });
+
+    alert->show();
+}
+
+
+
+

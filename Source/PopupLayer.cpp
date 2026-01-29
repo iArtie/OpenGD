@@ -36,14 +36,21 @@ USING_NS_AX;
 void PopupLayer::show(Transitions transitions)
 {
 	//robtops system to add to highest z
-	auto scene = Director::getInstance()->getRunningScene();
+	/* auto scene = Director::getInstance()->getRunningScene();
 	int z = GameToolbox::getHighestChildZ(scene);
 	if(z <= 104)
 		z = 105;
 	else
 		z++;
 	
-	scene->addChild(this, z);
+	scene->addChild(this, z); */
+
+	//robtop code is sus, negative ZLayer fix
+	auto scene = Director::getInstance()->getRunningScene();
+    int z = GameToolbox::getHighestChildZ(scene);
+    if (z <= 104 || z < 0) 
+     z = 105;
+    scene->addChild(this, z);
 	this->setOpacity(0);
 
 	switch (transitions)

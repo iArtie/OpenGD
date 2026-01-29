@@ -33,13 +33,20 @@ extern bool music;
 
 class MenuLayer : public ax::Layer 
 {
+private:
+ax::EventListenerKeyboard* _keyboardListener;
+bool _alertOpen;
+bool _alertClosed;
 public:
 	static bool music;
 	static ax::Scene* scene();
 	bool init();
 	static MenuLayer* create();
 
+    void initKeyboardListener();
+    void keyBackClicked(Node* sender);
 	MenuGameLayer *_mgl;	
 	MenuItemSpriteExtra* _profileBtn;
 	ax::Label* _profileLabel;
+    
 };
