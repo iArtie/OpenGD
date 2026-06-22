@@ -84,7 +84,7 @@ cmake --build build_x64 --config RelWithDebInfo
 
 <img width="972" height="228" alt="image" src="https://github.com/user-attachments/assets/f827bd63-5125-4aff-ae62-38912e00f2e4" />
 
-### NOTA: Si te sale el mismo error al compilar el proyecto, lo unico que tienes que hacer es ejecutar el siguiente comando en CMD o en Powershell, reemplaza la parte final del comando a la carpeta real de los assets de GD si no quieres agregar la carpeta Content, tendrias que tener abierto GD al compilar:
+### NOTA: Si te sale el mismo error al compilar el proyecto, lo unico que tienes que hacer es ejecutar el siguiente comando en CMD o en Powershell, reemplaza la parte final del comando a la carpeta real de los assets de GD si no quieres agregar la carpeta Content, tendrás que tener abierto GD al compilar:
 
 ```
 New-Item -ItemType Junction -Path "C:\Users\{nombre de usuario}\{directorio en donde está almacenado el proyecto}\OpenGD\Content" -Target "{Directorio de la carpeta real}"
