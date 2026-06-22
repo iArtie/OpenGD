@@ -65,11 +65,9 @@ Requisitos:
 
 ### Inicio rápido
 
-Clona axmol, ejecuta setup.ps1 y reinicia cmd para que se actualicen las variables de la línea de comandos
+Descarga axmol, ejecuta setup.ps1 y reinicia cmd o Powershell para que se actualicen las variables de la línea de comandos
 ### [Recomendamos utilizar Axmol 2.2.1. {https://github.com/axmolengine/axmol/releases?page=2}]
 ```
-git clone https://github.com/axmolengine/axmol
-cd axmol
 ./setup.ps1
 ```
 
