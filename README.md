@@ -37,10 +37,9 @@
 <!-- # UNMAINTAINED
 new (unfinished) projects are [gdrender](https://github.com/maxnut/gdrender) and [gdclone](https://github.com/opstic/gdclone)
 ABOUT THE PROJECT -->
-## About The Project
+## Acerca del proyecto
 
-![Stereo Madness running in OpenGD](https://cdn.discordapp.com/attachments/847950548921614366/1086798200146497647/6046uyhlekoa1.png "OpenGD")
-
+<!-- ![Stereo Madness running in OpenGD](https://cdn.discordapp.com/attachments/847950548921614366/1086798200146497647/6046uyhlekoa1.png "OpenGD") -->
 
 OpenGD es una implementación de código abierto del popular juego Geometry Dash. Nuestro objetivo principal es recrear la jugabilidad al 100 %, al tiempo que mejoramos el rendimiento mediante nuevas funciones del motor y mejoras en C++. También tenemos previsto implementar el multihilo en el futuro.
 
@@ -48,7 +47,7 @@ OpenGD es una implementación de código abierto del popular juego Geometry Dash
 
 Actualmente estamos reescribiendo la mecánica del juego desde cero, **por lo que los niveles no están disponibles por el momento**.
 
-### Built With
+### Creado con
 
 OpenGD se basa en [axmol](https://github.com/axmolengine/axmol), una bifurcación de cocos2dx 4.0 que incorpora numerosas funciones nuevas y mejoras con respecto al cocos2dx original. El Geometry Dash original también está creado con cocos2dx, pero con una versión mucho más antigua, de 2014.
 
