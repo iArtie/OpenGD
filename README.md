@@ -67,6 +67,7 @@ Required:
 ### Quick start
 
 Clone axmol, run setup.ps1 and restart cmd for command line variables to update
+### [We recommend using Axmol 2.2.1. {https://github.com/axmolengine/axmol/releases?page=2}]
 ```
 git clone https://github.com/axmolengine/axmol
 cd axmol
