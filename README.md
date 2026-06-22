@@ -19,13 +19,13 @@
   <h3 align="center">OpenGD</h3>
 
   <p align="center">
-    Open source implementation of Geometry Dash
+    Implementación de código abierto de Geometry Dash
     <br />   
   </p>
   
 ![](https://img.shields.io/badge/platforms-windows%20%7C%20linux%20%7C%20mac%20%7C%20android%20%7C%20ios-blue)
     <p align="center">
-    <a href="https://github.com/Open-GD/OpenGD/issues">Report Bug</a>
+    <a href="https://github.com/Open-GD/OpenGD/issues">Reportar bugs</a>
     ·
     <a href="https://github.com/Open-GD/OpenGD/releases/latest">Latest Release</a>
  · 
@@ -34,83 +34,88 @@
 </div>
 
 
-# UNMAINTAINED
+<!-- # UNMAINTAINED
 new (unfinished) projects are [gdrender](https://github.com/maxnut/gdrender) and [gdclone](https://github.com/opstic/gdclone)
-<!-- ABOUT THE PROJECT -->
+ABOUT THE PROJECT -->
 ## About The Project
 
 ![Stereo Madness running in OpenGD](https://cdn.discordapp.com/attachments/847950548921614366/1086798200146497647/6046uyhlekoa1.png "OpenGD")
 
 
-OpenGD is an open-source implementation of the popular game Geometry Dash. Our main goal is to remake the gameplay 1:1, while also improving performance through new engine features and C++ enhancements. We also plan to implement multithreading in the future.
+OpenGD es una implementación de código abierto del popular juego Geometry Dash. Nuestro objetivo principal es recrear la jugabilidad al 100 %, al tiempo que mejoramos el rendimiento mediante nuevas funciones del motor y mejoras en C++. También tenemos previsto implementar el multihilo en el futuro.
 
 ## Status 
 
-We are currently rewriting the gameplay from the ground up, **levels are not playable at the moment**.
+Actualmente estamos reescribiendo la mecánica del juego desde cero, **por lo que los niveles no están disponibles por el momento**.
 
 ### Built With
 
-OpenGD is powered by [axmol](https://github.com/axmolengine/axmol), which is maintained a fork of cocos2dx 4.0 that adds many new features and improvements over the original cocos2dx. The original Geometry Dash is also made with cocos2dx, but with a much older version from 2014.
+OpenGD se basa en [axmol](https://github.com/axmolengine/axmol), una bifurcación de cocos2dx 4.0 que incorpora numerosas funciones nuevas y mejoras con respecto al cocos2dx original. El Geometry Dash original también está creado con cocos2dx, pero con una versión mucho más antigua, de 2014.
 
-## Build instructions
+## Instrucciones de montaje
 
-Required:
-- Powershell
+Requisitos:
+- PowerShell
 - CMake
-- C++20 Compiler (MSVC, clang or gcc)
+- Compilador C++20 (MSVC, clang o gcc)
 
 
 <details>
 
   <summary>Windows</summary>
 
-### Quick start
+### Inicio rápido
 
-Clone axmol, run setup.ps1 and restart cmd for command line variables to update
-### [We recommend using Axmol 2.2.1. {https://github.com/axmolengine/axmol/releases?page=2}]
+Clona axmol, ejecuta setup.ps1 y reinicia cmd para que se actualicen las variables de la línea de comandos
+### [Recomendamos utilizar Axmol 2.2.1. {https://github.com/axmolengine/axmol/releases?page=2}]
 ```
 git clone https://github.com/axmolengine/axmol
 cd axmol
 ./setup.ps1
 ```
 
-In the OpenGD folder, build with cmake as usual
+En la carpeta OpenGD, compila con CMake como de costumbre
 ```
 cmake -B build_x64
 cmake --build build_x64 --config RelWithDebInfo
 ```
 
-> **Warning**
-> VS 2019 might not work on Windows, VS 2022 is recommended
+> **Advertencia**
+> Es posible que VS 2019 no funcione en Windows; se recomienda utilizar VS 2022
 
+### NOTA: Si te sale el mismo error al compilar el proyecto, lo unico que tienes que hacer es ejecutar el siguiente comando en CMD o en Powershell, reemplaza la parte final del comando a la carpeta real de los assets de GD:
 
-### Recommended setup: VSCode
+```
+New-Item -ItemType Junction -Path "C:\Users\{nombre de usuario}\{directorio en donde está almacenado el proyecto}\OpenGD\Content" -Target "{Directorio de la carpeta real}"
+```
 
-Required:
+### Configuración recomendada: VSCode
+
+Requisitos:
   - Ninja
   - clang (llvm)
-  - cmake-tools extension
-  - c/c++ extension
+  - Extensión cmake-tools
+  - Extensión c/c++
 
-Recommended: [sccache](https://github.com/mozilla/sccache) (faster re-builds)
+Recomendado: [sccache](https://github.com/mozilla/sccache) (recompilaciones más rápidas)
 
-Make sure ninja and clang are on path!
+¡Asegúrate de que ninja y clang estén en la ruta de acceso!
 
-From cmake-tools select configuration `Ninja default` or `Ninja sccache`, then build with cmake-tools or `cmake --build build`.
+En cmake-tools, selecciona la configuración «Ninja default» o «Ninja sccache» y, a continuación, compila con cmake-tools o con «cmake --build build».
 
-The VSCode setup provides support for intellisense and debugger (requires vs2022)
+La configuración de VSCode ofrece compatibilidad con IntelliSense y el depurador (requiere VS2022).
 
 </details>
 
 <details>
 
-<summary>Other platforms</summary>
+<summary>Otras plataformas</summary>
   
-Check axmol [Dev setup](https://github.com/axmolengine/axmol/blob/dev/docs/DevSetup.md)
+Echa un vistazo a axmol [Dev setup](https://github.com/axmolengine/axmol/blob/dev/docs/DevSetup.md)
 
 </details>
 
-To actually run the game you will need the resources from the 2.2/2.1 version of Geometry Dash.
+Para poder ejecutar el juego, necesitarás los recursos de la versión 2.2/2.1 de Geometry Dash.
 
 <!-- LICENSE -->
 ## License
@@ -118,7 +123,7 @@ To actually run the game you will need the resources from the 2.2/2.1 version of
 Distributed under the GPL v3 License . See `LICENSE` for more information.
 
 <!-- ACKNOWLEDGMENTS -->
-## Credits
+## Creditos
 
 * [axmol](https://github.com/axmolengine/axmol) a fork of cocos2d-x-4.0
 * [GD 1.0 decomps](https://github.com/Wyliemaster/Geometry-Dash-1.0) by Wylie
@@ -127,8 +132,8 @@ Distributed under the GPL v3 License . See `LICENSE` for more information.
 * [hps](https://github.com/jl2922/hps) high performance C++11 serialization library
 * [gdclone](https://github.com/opstic/gdclone) another gd reconstruction project
 
-### Contributors
-This project exists thanks to all the people who have contributed:
+### Colaboradores
+Este proyecto es posible gracias a todas las personas que han colaborado en él:
 
 <a href="https://github.com/Open-GD/OpenGD/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=Open-GD/OpenGD" />
