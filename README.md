@@ -39,7 +39,7 @@ new (unfinished) projects are [gdrender](https://github.com/maxnut/gdrender) and
 ABOUT THE PROJECT -->
 ## Acerca del proyecto
 
-<!-- ![Stereo Madness running in OpenGD](https://cdn.discordapp.com/attachments/847950548921614366/1086798200146497647/6046uyhlekoa1.png "OpenGD") -->
+<img width="1282" height="757" src="https://github.com/user-attachments/assets/b8dc0dab-d95a-409b-b5f1-efc6db7f2f39" />
 
 OpenGD es una implementación de código abierto del popular juego Geometry Dash. Nuestro objetivo principal es recrear la jugabilidad al 100 %, al tiempo que mejoramos el rendimiento mediante nuevas funciones del motor y mejoras en C++. También tenemos previsto implementar el multihilo en el futuro.
 
