@@ -54,24 +54,41 @@ std::vector<int> LevelSearchLayer::_selectedTimes = {};
 Sprite* searchButton(std::string texture, std::string text, float scale, std::string icon)
 {
 	auto sprite = Sprite::createWithSpriteFrameName(texture);
-	auto menu = Menu::create();
-
 	const auto& content_size = sprite->getContentSize();
+
+	// Usamos un Node simple como contenedor en lugar de un Menu estricto
+	auto container = Node::create();
+	container->setPosition(content_size / 2);
+	sprite->addChild(container);
+
 	auto label = Label::createWithBMFont(GameToolbox::getTextureString("bigFont.fnt"), text);
 	label->setScale(scale);
-	menu->addChild(label);
 
 	if (!icon.empty())
 	{
 		auto icon_sprite = Sprite::createWithSpriteFrameName(icon);
 		icon_sprite->setScale(1.1f);
-		menu->addChild(icon_sprite);
+
+		// Calculamos el espacio para alinearlos horizontalmente a mano
+		float labelWidth = label->getContentSize().width * scale;
+		float iconWidth = icon_sprite->getContentSize().width * 1.1f;
+		float padding = 8.0f; // Espacio entre el texto y el icono
+
+		float totalWidth = labelWidth + padding + iconWidth;
+
+		// Movemos el texto a la izquierda y el icono a la derecha
+		label->setPosition({ -(totalWidth / 2.0f) + (labelWidth / 2.0f), 0 });
+		icon_sprite->setPosition({ (totalWidth / 2.0f) - (iconWidth / 2.0f), 0 });
+
+		container->addChild(label);
+		container->addChild(icon_sprite);
 	}
-
-	menu->setPosition(content_size / 2);
-	menu->alignItemsHorizontally();
-
-	sprite->addChild(menu);
+	else
+	{
+		// Si no hay icono, el texto queda perfectamente en el centro (0,0)
+		label->setPosition(Vec2::ZERO);
+		container->addChild(label);
+	}
 
 	return sprite;
 }

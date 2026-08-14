@@ -101,8 +101,7 @@ bool LevelInfoLayer::init(GJGameLevel* level)
 
 	if (level->_featureScore > 0) rate->setVisible(true);
 	if (level->_epic) {
-		rate->createWithSpriteFrameName("GJ_epicCoin_001.png");
-		rate->initWithSpriteFrameName("GJ_epicCoin_001.png");
+		rate->setSpriteFrame("GJ_epicCoin_001.png");
 		rate->setVisible(true);
 	}
 
@@ -179,20 +178,21 @@ bool LevelInfoLayer::init(GJGameLevel* level)
 
 	// Normal Progressbar
 	auto normalBar = ax::Sprite::create(GameToolbox::getTextureString("GJ_progressBar_001.png"));
-	normalBar->setPosition({winSize.width / 2, 78.0});
-	normalBar->setColor({0, 0, 0});
+	normalBar->setPosition({ winSize.width / 2, 78.0 });
+	normalBar->setColor({ 0, 0, 0 });
 	normalBar->setOpacity(125);
 
+	// Se añade SOLO UNA VEZ a la capa (Layer) en la profundidad 3
 	addChild(normalBar, 3);
 
 	auto normalProgress = ax::Sprite::create(GameToolbox::getTextureString("GJ_progressBar_001.png"));
-	normalProgress->setPosition({1.36f, 10});
-	normalProgress->setColor({0, 255, 0});
+	normalProgress->setPosition({ 1.36f, 10 });
+	normalProgress->setColor({ 0, 255, 0 });
 	normalProgress->setOpacity(255);
-	normalProgress->setAnchorPoint({0, 0.5});
+	normalProgress->setAnchorPoint({ 0, 0.5 });
 	normalProgress->setTextureRect(
-		{0, 0, normalBar->getContentSize().width * (level->_normalPercent / 100.f),
-		 normalBar->getTextureRect().size.height});
+		{ 0, 0, normalBar->getContentSize().width * (level->_normalPercent / 100.f),
+		 normalBar->getTextureRect().size.height });
 	normalProgress->setScale(0.992f);
 	normalProgress->setScaleX(0.992f);
 	normalProgress->setScaleY(0.86f);
@@ -204,43 +204,48 @@ bool LevelInfoLayer::init(GJGameLevel* level)
 
 	normalBar->addChild(normalPercentage, 4);
 	normalBar->addChild(normalProgress);
-	this->addChild(normalBar);
+	// ELIMINADO: this->addChild(normalBar);
 
 	auto normalLabel = Label::createWithBMFont(GameToolbox::getTextureString("bigFont.fnt"), "Normal Mode");
-	normalLabel->setPosition({normalBar->getPositionX(), normalBar->getPositionY() + 20.0f});
+	normalLabel->setPosition({ normalBar->getPositionX(), normalBar->getPositionY() + 20.0f });
 	normalLabel->setScale(0.5);
 	this->addChild(normalLabel);
 
 	// Practice Progress Bar
 	auto practiceBar = ax::Sprite::create(GameToolbox::getTextureString("GJ_progressBar_001.png"));
-	practiceBar->setPosition({winSize.width / 2, normalBar->getPositionY() - 50.f});
-	practiceBar->setColor({0, 0, 0});
+	practiceBar->setPosition({ winSize.width / 2, normalBar->getPositionY() - 50.f });
+	practiceBar->setColor({ 0, 0, 0 });
 	practiceBar->setOpacity(125);
+
+	// Se añade SOLO UNA VEZ
 	addChild(practiceBar, 3);
 
 	auto practiceProgress = ax::Sprite::create(GameToolbox::getTextureString("GJ_progressBar_001.png"));
-	practiceProgress->setPosition({1.36f, 10});
-	practiceProgress->setColor({0, 255, 0});
+	practiceProgress->setPosition({ 1.36f, 10 });
+	practiceProgress->setColor({ 0, 255, 0 });
 	practiceProgress->setOpacity(255);
-	practiceProgress->setAnchorPoint({0, 0.5});
+	practiceProgress->setAnchorPoint({ 0, 0.5 });
 	practiceProgress->setTextureRect(
-		{0, 0, practiceBar->getContentSize().width * (level->_practicePercent / 100.f),
-		 practiceBar->getTextureRect().size.height});
+		{ 0, 0, practiceBar->getContentSize().width * (level->_practicePercent / 100.f),
+		 practiceBar->getTextureRect().size.height });
 	practiceProgress->setScale(0.992f);
 	practiceProgress->setScaleX(0.992f);
 	practiceProgress->setScaleY(0.86f);
 
+	// CORREGIDO: Ahora usa _practicePercent
 	auto practicePercentage = Label::createWithBMFont(
-		GameToolbox::getTextureString("bigFont.fnt"), StringUtils::format("%i%%", (int)level->_normalPercent));
+		GameToolbox::getTextureString("bigFont.fnt"), StringUtils::format("%i%%", (int)level->_practicePercent));
 	practicePercentage->setScale(0.5);
-	practicePercentage->setPosition(normalBar->getContentSize() / 2);
+
+	// CORREGIDO: Ahora usa practiceBar para centrarse
+	practicePercentage->setPosition(practiceBar->getContentSize() / 2);
 
 	practiceBar->addChild(practicePercentage, 4);
 	practiceBar->addChild(practiceProgress);
-	this->addChild(practiceBar);
+	// ELIMINADO: this->addChild(practiceBar);
 
 	auto practiceLabel = Label::createWithBMFont(GameToolbox::getTextureString("bigFont.fnt"), "Practice Mode");
-	practiceLabel->setPosition({normalBar->getPositionX(), practiceBar->getPositionY() + 20.0f});
+	practiceLabel->setPosition({ normalBar->getPositionX(), practiceBar->getPositionY() + 20.0f });
 	practiceLabel->setScale(0.5);
 
 	this->addChild(practiceLabel);

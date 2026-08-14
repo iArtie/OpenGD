@@ -20,7 +20,8 @@
 #include "MenuItemSpriteExtra.h"
 #include "core/ui/UIScale9Sprite.h"
 #include "PlayLayer.h"
-#include <AudioEngine.h>
+#include "FMODAudioEngine.h"
+#include "LevelTools.h"
 
 #include "LevelDebugLayer.h"
 #include "LevelEditorLayer.h"
@@ -35,6 +36,7 @@
 #include "GameToolbox/getTextureString.h"
 
 #include "ButtonSprite.h"
+#include "2d/ActionInstant.h"
 
 bool LevelPage::replacingScene = false;
 
@@ -106,29 +108,40 @@ bool LevelPage::init(GJGameLevel* level)
 
 	auto normalPerc = ax::Label::createWithBMFont(bigFontTexture, "");
 	normalPerc->setPosition({ winSize.width / 2, winSize.height / 2.f - 30 });
-	normalPerc->enableShadow(ax::Color4B::BLACK, {0.2f, -0.2f});
 	normalPerc->setString(fmt::format("{:.3}%", level->_normalPercent));
-	//normalPerc->setString(std::to_string((int)level->_normalPercent) + "%");
 	normalPerc->setScale(0.55f);
 	addChild(normalPerc, 4);
 
 	auto practicePerc = ax::Label::createWithBMFont(bigFontTexture, "");
 	practicePerc->setPosition({ winSize.width / 2, winSize.height / 2.f - 80 });
-	practicePerc->enableShadow(ax::Color4B::BLACK, {0.2f, -0.2f});
-	practicePerc->setString(fmt::format("{:.3}", level->_practicePercent));
+	practicePerc->setString(fmt::format("{:.3}%", level->_practicePercent));
 	practicePerc->setScale(0.55f);
 	addChild(practicePerc, 4);
-
-
 	
-	auto scale9 = ax::ui::Scale9Sprite::create("square02_001.png");
-	//scale9->setPosition({170, 47.5});
+	auto scale9 = ax::ui::Scale9Sprite::create(GameToolbox::getTextureString("square02_001.png"));
+	scale9->setPosition({170, 47.5});
+	scale9->setStretchEnabled(true);
 	scale9->setContentSize({340, 95});
 	scale9->setOpacity(125);
 	
 	auto levelName = ax::Label::createWithBMFont(bigFontTexture, level->_levelName);
 	levelName->setPosition(190, 50.5);
-	levelName->setScale(0.904f);
+
+	float baseScale = 0.904f;
+	float textWidth = levelName->getContentSize().width;
+	float maxWidth = 260.0f; // Límite máximo de ancho en píxeles antes de encogerse
+
+	// Si el texto multiplicado por la escala base es más grande que el límite...
+	if ((textWidth * baseScale) > maxWidth) {
+		// ...calculamos una nueva escala más pequeña para que encaje perfecto
+		float newScale = maxWidth / textWidth;
+		levelName->setScale(newScale);
+	}
+	else {
+		// Si es un nombre corto, usamos la escala normal
+		levelName->setScale(baseScale);
+	}
+
 	scale9->addChild(levelName, 0);
 
 	auto diffIcon = ax::Sprite::createWithSpriteFrameName("diffIcon_01_btn_001.png");
@@ -152,6 +165,7 @@ bool LevelPage::init(GJGameLevel* level)
 	auto levelMenu = ax::Menu::create();
 	levelMenu->addChild(mainBtn);
 	levelMenu->setPosition({ winSize.width / 2.f, winSize.height / 2.f + 60 });
+	/*
 	auto buttonSprite = ButtonSprite::create("editor", 0x32, 0, 0.6, false, GameToolbox::getTextureString("bigFont.fnt"), GameToolbox::getTextureString("GJ_button_01.png"), 30);
 	MenuItemSpriteExtra* button = MenuItemSpriteExtra::create(buttonSprite, [this](Node* btn)
 	{
@@ -167,6 +181,7 @@ bool LevelPage::init(GJGameLevel* level)
 	});
 	button->setPositionY(70);
 	levelMenu->addChild(button);
+	*/
 	addChild(levelMenu);
 	
 	return true;
@@ -177,13 +192,45 @@ void LevelPage::onPlay(Node* btn)
 	if (LevelPage::replacingScene)
 		return;
 
-	ax::Scene* scene = PlayLayer::scene(_level);
-	ax::AudioEngine::stopAll();
-	ax::AudioEngine::play2d("playSound_01.ogg", false, 0.2f);
-	ax::Director::getInstance()->replaceScene(ax::TransitionFade::create(0.5f, scene));
+	// Bloqueamos futuros toques
 	LevelPage::replacingScene = true;
 	MenuLayer::music = false;
+
+	// 1. Detenemos la música del menú y hacemos el sonido de confirmación al instante CON FMOD
+	FMODAudioEngine::getInstance()->stopAllMusic();
+	FMODAudioEngine::getInstance()->playEffect("playSound_01.ogg");
+
+	// Usamos la misma estructura de acciones que GD para delegar el trabajo 
+	// al siguiente frame y no congelar el botón en pleno clic
+	auto delay = ax::DelayTime::create(0.75f);
+	auto callStep2 = ax::CallFunc::create(AX_CALLBACK_0(LevelPage::playStep2, this));
+	auto seq = ax::Sequence::create(delay, callStep2, nullptr);
+
+	this->runAction(seq);
 }
+
+void LevelPage::playStep2()
+{
+	// Usamos _levelID para precargar, ya que el levelstring aún no se ha leído
+	std::string musicFilename = LevelTools::getAudioFilename(_level->_levelID);
+
+	// Precargamos el audio en FMOD
+	FMODAudioEngine::getInstance()->preloadMusic(musicFilename);
+
+	auto delay = ax::DelayTime::create(0.0f);
+	auto callStep3 = ax::CallFunc::create(AX_CALLBACK_0(LevelPage::playStep3, this));
+	auto seq = ax::Sequence::create(delay, callStep3, nullptr);
+
+	this->runAction(seq);
+}
+
+void LevelPage::playStep3()
+{
+	// Finalmente, cargamos las lógicas pesadas y transicionamos
+	ax::Scene* scene = PlayLayer::scene(_level);
+	ax::Director::getInstance()->replaceScene(ax::TransitionFade::create(0.5f, scene));
+}
+
 LevelPage* LevelPage::create(GJGameLevel* level)
 {
 	LevelPage* pRet = new LevelPage();

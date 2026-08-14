@@ -30,13 +30,13 @@ namespace ax
 // opengd addition
 class SimpleProgressBar : public ax::Layer {
 protected:
-	ax::Sprite *_pGroove;
-	ax::Sprite *_pBar;
+    ax::Sprite* _pGroove;
+    ax::Sprite* _pBar;
 
-	float _pBarWidth;
+    float _pBarWidth;
 public:
-	CREATE_FUNC(SimpleProgressBar);
-	virtual bool init();
+    static SimpleProgressBar* create(const char* _slider = "slidergroove_02.png", const char* _sliderBar = "sliderBar.png");
+	virtual bool init(const char* _slider, const char* _sliderBar);
 
 	void update(float delta);
 

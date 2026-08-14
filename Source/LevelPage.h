@@ -37,4 +37,8 @@ public:
 	static LevelPage* create(GJGameLevel* level);
 
 	void onPlay(ax::Node*);
+private:
+    // Añadimos las funciones en cadena al estilo RobTop
+    void playStep2();
+    void playStep3();
 };

@@ -41,7 +41,7 @@ public:
 	ax::Vec2 startPos;
 	GroundLayer* groundLayer;
 	ax::Sprite* bgSpr;
-	ax::Menu* bgSprites;
+	ax::Node* bgSprites;
 	float bgStartPos;
 	float sep;
 	float bsizeX;

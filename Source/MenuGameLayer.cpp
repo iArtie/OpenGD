@@ -62,8 +62,7 @@ bool MenuGameLayer::init(){
 	groundLayer = GroundLayer::create(1);
 	
 	addChild(groundLayer, 2);
-	
-	//should work but doesnt?
+
 	auto playerTest = PlayerObject::create(GameToolbox::randomInt(1,14), this);
 	playerTest->setMainColor(GameToolbox::randomColor3B());
 	playerTest->setSecondaryColor(GameToolbox::randomColor3B());
@@ -78,52 +77,54 @@ bool MenuGameLayer::init(){
 		backend::SamplerAddressMode::REPEAT
 	};
 
-	bgSprites = Menu::create();
+	bgSprites = Node::create();
+	bgSprites->setContentSize(winSize);
 
-	// this->bgSpr = bg;
-	// this->bgSpr->getTexture()->setTexParameters(texParams);
-	// this->bgSpr->setTextureRect(Rect(0, 0, 2048, 1024));
-	// this->bgSpr->setPosition(winSize / 2);
+	// Permite que la animación de color del Node pase a los sprites
+	bgSprites->setCascadeColorEnabled(true);
+	bgSprites->setColor({ 0, 102, 255 }); // Le damos el color inicial azul al contenedor
 
-	for(int i = 0; i < 4; i++) {
+	float bsizeX_scaled = 2048.0f * 1.185f;
+	float startX = -(bsizeX_scaled * 4.0f) / 2.0f + (bsizeX_scaled / 2.0f);
+
+	for (int i = 0; i < 4; i++) {
 		auto gr = Sprite::create(GameToolbox::getTextureString("game_bg_01_001.png"));
 		gr->setStretchEnabled(false);
 		gr->getTexture()->setTexParameters(texParams);
 		gr->setTextureRect(Rect(0, 0, 2048, 1024));
-		gr->setPosition(winSize / 2);
-		gr->setColor({ 0, 102, 255 });
-		// bg scale
-		gr->setScale(1.185f); // epic hardcore (please fix lmao)
+
+		gr->setScale(1.185f);
+
 		bsizeX = gr->getContentSize().width;
+		gr->setPosition(startX + (i * bsizeX_scaled), 0);
 
 		this->bgSprites->addChild(gr);
 	}
-	this->bgSprites->alignItemsHorizontallyWithPadding(0);
+
+	// El Menu se posiciona originalmente en la mitad de la pantalla
+	bgSprites->setPosition(winSize.width / 2.0f, 0);
 	this->bgStartPos = bgSprites->getPositionX();
+
 	this->addChild(bgSprites, -3);
 	sep = 0.3f;
+
 	bgSprites->setScale(winSize.width / bgSprites->getContentSize().width);
-	bgSprites->setPositionY(0);
-
-	//this is not how it works lol
-	// bgSprites->setColor(GameToolbox::randomColor3B());
-
-	// // this->addChild(this->bgSpr, -1);
 	
-	// bgSprites->runAction(
-	// 	 RepeatForever::create(
-	// 		 Sequence::create(
-	// 			 TintTo::create(4.0f, {255, 0, 0}),
-	// 			 TintTo::create(4.0f, {255, 255, 0}),
-	// 			 TintTo::create(4.0f, {0, 255, 0}),
-	// 			 TintTo::create(4.0f, {0, 255, 255}),
-	// 			 TintTo::create(4.0f, {0, 0, 255}),
-	// 			 TintTo::create(4.0f, {255, 0, 255}),
-	// 			 TintTo::create(4.0f, {255, 0, 0}),
-	// 			 nullptr
-	// 		 )
-	// 	 )
-	// );
+	bgSprites->runAction(
+		RepeatForever::create(
+			Sequence::create(
+				TintTo::create(2.0f, { 0, 102, 255 }),	  // Inicia con el azul original
+				TintTo::create(2.0f, { 255, 0, 0 }),     // Rojo
+				TintTo::create(2.0f, { 255, 255, 0 }),   // Amarillo
+				TintTo::create(2.0f, { 0, 255, 0 }),     // Verde
+				TintTo::create(2.0f, { 0, 255, 255 }),   // Cian
+				TintTo::create(2.0f, { 0, 0, 255 }),     // Azul oscuro
+				TintTo::create(2.0f, { 255, 0, 255 }),   // Magenta
+				TintTo::create(2.0f, { 0, 102, 255 }),   // Vuelve al azul original
+				nullptr
+			)
+		)
+	);
 	
 	scheduleUpdate();
 
@@ -174,6 +175,7 @@ void MenuGameLayer::update(float delta) {
 	processBackground(delta);
 	processPlayerMovement(delta);
 	groundLayer->update(delta * 60.0f);
+	groundLayer->_sprite->setColor(bgSprites->getColor());
 }
 
 //void MenuGameLayer::renderRect(ax::Rect rect, ax::Color4B col)

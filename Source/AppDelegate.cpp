@@ -24,6 +24,7 @@
  ****************************************************************************/
 
 #include "AppDelegate.h"
+#include "platform/FileUtils.h"
 #include "GameManager.h"
 #include "ResourcesLoadingLayer.h"
 #include "external/constants.h"
@@ -34,13 +35,13 @@
 #include "base/EventDispatcher.h"
 
 #if defined(AX_PLATFORM_PC) || (AX_TARGET_PLATFORM == AX_PLATFORM_WASM)
-	#include "platform/GLViewImpl.h"
+#include "platform/GLViewImpl.h"
 #elif (AX_TARGET_PLATFORM == AX_PLATFORM_ANDROID)
-	#include "platform/android/GLViewImpl-android.h"
+#include "platform/android/GLViewImpl-android.h"
 #elif (AX_TARGET_PLATFORM == AX_PLATFORM_IOS)
-	#include "platform/ios/GLViewImpl-ios.h"
+#include "platform/ios/GLViewImpl-ios.h"
 #elif (AX_TARGET_PLATFORM == AX_PLATFORM_WINRT)
-	#include "platform/winrt/GLViewImpl-winrt.h"
+#include "platform/winrt/GLViewImpl-winrt.h"
 #endif
 
 #define USE_AUDIO_ENGINE 1
@@ -48,6 +49,8 @@
 #if USE_AUDIO_ENGINE
 #include <audio/AudioEngine.h>
 #endif
+
+#include "FMODAudioEngine.h"
 
 USING_NS_AX;
 
@@ -60,144 +63,126 @@ AppDelegate::AppDelegate() {}
 
 AppDelegate::~AppDelegate() {}
 
-
-// if you want a different context, modify the value of glContextAttrs
-// it will affect all platforms
 void AppDelegate::initGLContextAttrs()
 {
-	// set OpenGL context attributes: red,green,blue,alpha,depth,stencil,multisamplesCount
-	GLContextAttrs glContextAttrs = {8, 8, 8, 8, 24, 8, 0};
-
-	GLView::setGLContextAttrs(glContextAttrs);
+	GLContextAttrs glContextAttrs = { 8, 8, 8, 8, 24, 8, 0 };
+		GLView::setGLContextAttrs(glContextAttrs);
 }
 
-// if you want to use the package manager to install more packages,
-// don't modify or remove this function
 static int register_all_packages()
 {
-	return 0; // flag for packages manager
+	return 0;
 }
+
 int AppDelegate::applicationGetRefreshRate()
 {
 #if (AX_TARGET_PLATFORM == AX_PLATFORM_WIN32) || (AX_TARGET_PLATFORM == AX_PLATFORM_LINUX)
 	auto mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-	return mode->refreshRate;
+		return mode->refreshRate;
 #else
 	return 60;
 #endif
 }
 
-
 static void setupDesignResolution(GLView* glView)
 {
-	auto screen_size = glView->getFrameSize();
-	ResolutionPolicy resPolicy;
+	// En Geometry Dash, la altura SIEMPRE es fija (320) para garantizar
+	// que la c�mara muestre exactamente la misma cantidad de bloques verticalmente.
+	// El ancho se expande din�micamente seg�n lo largo que sea el tel�fono o monitor.
 
-	if (screen_size.height / designResolutionSize.height <= screen_size.width / designResolutionSize.width)
-	{
-		resPolicy = ResolutionPolicy::FIXED_HEIGHT;
-	}
-	else
-	{
-		resPolicy = ResolutionPolicy::FIXED_WIDTH;
-	}
-
-	glView->setDesignResolutionSize(designResolutionSize.width, designResolutionSize.height, resPolicy);
+	glView->setDesignResolutionSize(designResolutionSize.width, designResolutionSize.height, ResolutionPolicy::FIXED_HEIGHT);
 }
 
 #ifdef AX_PLATFORM_PC
 static void onGLFWwindowSizeCallback(GLFWwindow*, int w, int h)
 {
 	auto director = Director::getInstance();
-	auto glView = director->getGLView();
+		auto glView = director->getGLView();
 
-	glView->setFrameSize(w, h);
-	setupDesignResolution(glView);
+		glView->setFrameSize(w, h);
+		setupDesignResolution(glView);
 
-	director->getEventDispatcher()->dispatchCustomEvent(GLViewImpl::EVENT_WINDOW_RESIZED, nullptr);
+		director->getEventDispatcher()->dispatchCustomEvent(GLViewImpl::EVENT_WINDOW_RESIZED, nullptr);
 }
 #endif
-
 
 bool AppDelegate::applicationDidFinishLaunching()
 {
-
-
-	// initialize director
 	auto director = Director::getInstance();
-	auto glView = director->getGLView();
-	if (!glView)
-	{
+		auto glView = director->getGLView();
+		if (!glView)
+		{
 #ifdef AX_PLATFORM_PC
-		glView = GLViewImpl::createWithRect(
-			"OpenGD", ax::Rect(0, 0, 1280, 720), 1.f, true);
+			glView = GLViewImpl::createWithRect(
+				"OpenGD", ax::Rect(0, 0, 1280, 720), 1.f, true);
 #else
-		glView = GLViewImpl::create("OpenGD");
+			glView = GLViewImpl::create("OpenGD");
 #endif
 
 #if (AX_TARGET_PLATFORM == AX_PLATFORM_LINUX)
-	int dispX;
-	int dispY;
-	auto disp = glfwGetPrimaryMonitor();
-	glfwGetMonitorPhysicalSize(disp, &dispX, &dispY);
+				int dispX;
+				int dispY;
+				auto disp = glfwGetPrimaryMonitor();
+				glfwGetMonitorPhysicalSize(disp, &dispX, &dispY);
 #endif
 
 #if FULLSCREEN == true
-		auto full = dynamic_cast<GLViewImpl *>(glView);
-		full->setFullscreen();
+				auto full = dynamic_cast<GLViewImpl*>(glView);
+				full->setFullscreen();
 #endif
-		director->setGLView(glView);
-	}
+				director->setGLView(glView);
+		}
 
-	// display FPS stats or not.
 	director->setStatsDisplay(SHOW_FPS);
-
-	// set FPS. the default value is 1.0/60 if you don't call this
-	director->setAnimationInterval(1.0f / applicationGetRefreshRate());
-
-	setupDesignResolution(glView);
+		director->setAnimationInterval(1.0f / applicationGetRefreshRate());
+		setupDesignResolution(glView);
 
 #ifdef AX_PLATFORM_PC
-
-	glfwSetWindowAspectRatio(static_cast<GLViewImpl*>(glView)->getWindow(), 16, 9);
-
-	glfwSetWindowSizeCallback(static_cast<GLViewImpl*>(glView)->getWindow(), onGLFWwindowSizeCallback);
-
+		glfwSetWindowAspectRatio(static_cast<GLViewImpl*>(glView)->getWindow(), 16, 9);
+		glfwSetWindowSizeCallback(static_cast<GLViewImpl*>(glView)->getWindow(), onGLFWwindowSizeCallback);
 #endif
 
-	GameToolbox::log("APLICATION INIT");
-	director->setContentScaleFactor(GameManager::getInstance()->isHigh() ? 4.0f : 2.0f);
+		GameToolbox::log("APLICATION INIT");
+		GameToolbox::log("HOLA ANDROID, CARGA FMOD POR FAVOR");
+
+		#ifdef AX_PLATFORM_PC
+			director->setContentScaleFactor(GameManager::getInstance()->isHigh() ? 4.0f : 2.0f);
+		#endif
+
+		#ifdef AX_PLATFORM_ANDROID
+    		director->setContentScaleFactor(4.0f);
+		#endif
 
 #if FULLSCREEN == true && AX_TARGET_PLATFORM == AX_PLATFORM_LINUX
-	std::cout << "X " << dispX << " Y " << dispY << std::endl;
-	glView->setFrameSize((float)dispX, (float)dispY);
-	// director->setAnimationInterval(1.0f / applicationGetRefreshRate());
+		std::cout << "X " << dispX << " Y " << dispY << std::endl;
+		glView->setFrameSize((float)dispX, (float)dispY);
 #endif
 
-	register_all_packages();
+		register_all_packages();
 
-	// create a scene. it's an autorelease object
-	director->runWithScene(ResourcesLoadingLayer::scene());
+		// --- INTEGRACIÓN FMOD ---
+		// Inicializamos tu wrapper correctamente
+		FMODAudioEngine::getInstance();
 
-	return true;
+		// FMOD necesita actualizarse cada frame
+		director->getScheduler()->schedule([](float dt) {
+			FMODAudioEngine::getInstance()->update();
+			}, director, 0.0f, false, "FMOD_UPDATE_LOOP");
+		// ------------------------
+
+		director->runWithScene(ResourcesLoadingLayer::scene());
+		director->setClearColor(ax::Color4F(0.0f, 0.0f, 0.0f, 1.0f));
+		return true;
 }
 
-// This function will be called when the app is inactive. Note, when receiving a phone call it is invoked.
 void AppDelegate::applicationDidEnterBackground()
 {
 	Director::getInstance()->stopAnimation();
-
-#if USE_AUDIO_ENGINE
-	AudioEngine::pauseAll();
-#endif
+	FMODAudioEngine::getInstance()->setPaused(true);
 }
 
-// this function will be called when the app is active again
 void AppDelegate::applicationWillEnterForeground()
 {
 	Director::getInstance()->startAnimation();
-
-#if USE_AUDIO_ENGINE
-	AudioEngine::resumeAll();
-#endif
+	FMODAudioEngine::getInstance()->setPaused(false);
 }

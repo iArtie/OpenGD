@@ -23,7 +23,6 @@
 #include "EventKeyboard.h"
 #include "BaseGameLayer.h"
 
-
 enum PlayerGamemode;
 
 class GJGameLevel;
@@ -34,13 +33,12 @@ class PlayerObject;
 class GroundLayer;
 class MenuItemSpriteExtra;
 
-namespace ax 
-{ 
-	class Event; 
+namespace ax
+{
+	class Event;
 	class Sprite;
 	class Label;
 }
-
 
 class PlayLayer : public BaseGameLayer
 {
@@ -56,15 +54,11 @@ protected:
 	ax::Node* cameraFollow;
 
 	ax::Sprite* m_pBG;
-	GroundLayer *_bottomGround, *_ceiling;
-	
+	GroundLayer* _bottomGround, * _ceiling;
+
 	ax::Vec2 m_obCamPos;
 
 	MenuItemSpriteExtra* backbtn;
-
-	ax::DrawNode* dn;
-
-	std::vector<GameObject*> _pObjects;
 
 	float m_fCameraYCenter;
 	float m_lastObjXPos = 570.0f;
@@ -80,35 +74,32 @@ protected:
 	SimpleProgressBar* m_pBar;
 	ax::Label* m_pPercentage;
 
-	//----IMGUI DEBUG MEMBERS----
-	bool m_freezePlayer;
-	bool m_platformerMode;
+	bool m_freezePlayer = false;
+	bool m_platformerMode = false;
+	bool m_bEndAnimation = false;
 
-	bool m_bEndAnimation;
+	double m_extraDelta = 0.0;
+	int m_resumeTimer = 0;
 
 	void setInstance();
 public:
 	int _enterEffectID = 0;
 
-	int _groundID = 1;
-	int _bgID = 1;
-
 	UILayer* m_pHudLayer;
+	ax::Sprite* m_closeButtonSpr;
+	ax::Menu* m_closeMenu;
 
 	int _secondsSinceStart;
 	int _attempts;
 	int _jumps;
 	bool _everyplay_recorded;
-	bool _testMode;
 
 	std::vector<bool> _coinsCollected;
+	bool _isPaused = false;
+	bool m_started = false;
 
-	bool _isDualMode;
-
-	virtual void destroyPlayer(PlayerObject* player);
-
-	void loadLevel(std::string_view levelStr);
-
+	virtual void destroyPlayer(PlayerObject* player, GameObject* hazard) override;
+	void destroyPlayer(PlayerObject* player) override;
 	void spawnCircle();
 	void showEndLayer();
 	virtual void showCompleteText();
@@ -116,32 +107,37 @@ public:
 	void update(float delta) override;
 	virtual void updateCamera(float dt);
 	void updateVisibility();
+	void checkCollisions(PlayerObject* player, float dt);
 	void moveCameraToPos(ax::Vec2);
 	void changeGameMode(GameObject* obj, PlayerObject* player, PlayerGamemode gameMode);
-	virtual void resetLevel();
+
+	void addObject(GameObject* obj) override;
+	void updateTriggers(float dt);
+
+	virtual void resetLevel() override;
+	void startGame();
+	void onEnterTransitionDidFinish() override;
+
+	void pauseGame();
+	void resume();
+	void resumeAndRestart(bool fullReset);
+
 	void exit();
 
 	void tweenBottomGround(float y);
 	void tweenCeiling(float y);
-
-	// dt?
-	void checkCollisions(PlayerObject* player, float delta);
 	void renderRect(ax::Rect rect, ax::Color4B col);
-
 	void applyEnterEffect(GameObject* obj);
 	float getRelativeMod(ax::Vec2 objPos, float v1, float v2, float v3);
+	int sectionForPos(float x) override;
 
-	int sectionForPos(float x);
-
+	double getModifiedDelta(float dt);
 	void changePlayerSpeed(int speed);
 	void changeGravity(bool gravityFlipped);
-
 	void incrementTime();
-
-	ax::Color3B getLightBG();
+	ax::Color3B getLightBG() override;
 
 	static ax::Scene* scene(GJGameLevel* level);
 	static PlayLayer* create(GJGameLevel* level);
-
 	static PlayLayer* getInstance();
 };

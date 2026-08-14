@@ -3,11 +3,11 @@ apply from: project(':libaxmol').projectDir.toString() + "/axutils.gradle"
 
 android {
     namespace "org.axmol.opengd"
-    compileSdk PROP_COMPILE_SDK_VERSION.toInteger()
+    compileSdk 34
 
     // Setup native build tools: ndk & cmake
     def nbtInfo = axutils.findNativeBuildTools(project)
-    ndkVersion = nbtInfo[0]
+    ndkVersion = "23.2.8568313"
     if(nbtInfo[1]) {
         ndkPath = nbtInfo[1]
     }
@@ -17,7 +17,7 @@ android {
     defaultConfig {
         applicationId "com.opengdteam.opengd"
         minSdkVersion PROP_MIN_SDK_VERSION
-        targetSdkVersion PROP_TARGET_SDK_VERSION
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
 
@@ -40,11 +40,15 @@ android {
         res.srcDir "res"
         manifest.srcFile "AndroidManifest.xml"
         assets.srcDir "build/assets"
+        
+        // --- INTEGRACIÓN FMOD: Ruta de las librerías nativas .so ---
+        jniLibs.srcDirs += ['../../axmol/3rdparty/fmod/lib/android']
     }
 
     externalNativeBuild {
         cmake {
-            version "$cmakeVer"
+            // Ponemos exactamente la versión que tienes en el SDK Manager
+            version "3.30.3" 
             path "../../CMakeLists.txt"
         }
     }

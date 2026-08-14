@@ -127,7 +127,7 @@ bool GarageLayer::init()
 	shard->setPosition({30, size.height - 80});
 	menu->addChild(shard);
 
-	auto paint = MenuItemSpriteExtra::create("GJ_shardsBtn_001.png", [&](Node*) {
+	auto paint = MenuItemSpriteExtra::create("GJ_paintBtn_001.png", [&](Node*) {
 
 	});
 	paint->setPosition({30, size.height - 120});
@@ -245,38 +245,39 @@ void GarageLayer::setupIconSelect()
 	arrow1->setScale(.8f);
 
 	auto onChangePage = [this](bool up)
-	{
-		int gameMode = selectedGameModeInt();
-		GameToolbox::log("selected: {}, gameMode: {}", (int)this->_selectedMode, gameMode);
-		int page = this->_modePages[gameMode];
-		int maxpage = GameToolbox::getValueForGamemode(_selectedMode) / 36;
+		{
+			int gameMode = selectedGameModeInt();
+			int page = this->_modePages[gameMode];
 
-		if ((!up && page <= 0) || (up && page >= maxpage))
-			return;
+			int maxpage = (GameToolbox::getValueForGamemode(_selectedMode) - 1) / 36;
 
-		if(up)
-			++_modePages[gameMode];
-		else
-			--_modePages[gameMode];
-		GameToolbox::log("page: {}, maxpage: {}, [] = {}", page, maxpage, _modePages[gameMode]);
+			if (up) {
+				_modePages[gameMode] = (page >= maxpage) ? 0 : page + 1;
+			}
+			else {
+				_modePages[gameMode] = (page <= 0) ? maxpage : page - 1;
+			}
 
-		this->setupPage(_selectedMode, _modePages[gameMode]);
-	};
-	auto arrowLeftBtn = MenuItemSpriteExtra::create(arrow1, [&](Node*) {
+			// ELIMINAMOS la línea de GameToolbox::log que causa la excepción de fmt
+			this->setupPage(_selectedMode, _modePages[gameMode]);
+		};
+
+	// Botón Izquierdo (capturando onChangePage por valor para evitar el crash)
+	auto arrowLeftBtn = MenuItemSpriteExtra::create(arrow1, [onChangePage](Node*) {
 		onChangePage(false);
-	});
-	//arrBtn1->setSizeMult(2.2f);
-	arrowLeftBtn->setPosition({bg->getPositionX() - 220, bg->getPositionY()});
+		});
+	arrowLeftBtn->setPosition({ bg->getPositionX() - 220, bg->getPositionY() });
 	menuArr->addChild(arrowLeftBtn);
 
 	auto arrow2 = Sprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
 	arrow2->setScale(.8f);
 	arrow2->setFlippedX(true);
-	auto arrowRightBtn = MenuItemSpriteExtra::create(arrow2, [&](Node*) {
+
+	// Botón Derecho (capturando onChangePage por valor para evitar el crash)
+	auto arrowRightBtn = MenuItemSpriteExtra::create(arrow2, [onChangePage](Node*) {
 		onChangePage(true);
-	});
-	//arrBtn2->setSizeMult(2.2f);
-	arrowRightBtn->setPosition({bg->getPositionX() + 220, bg->getPositionY()});
+		});
+	arrowRightBtn->setPosition({ bg->getPositionX() + 220, bg->getPositionY() });
 	menuArr->addChild(arrowRightBtn);
 
 	this->addChild(menuArr);
@@ -285,19 +286,10 @@ void GarageLayer::setupIconSelect()
 	_selectSprite->setScale(.9f);
 	this->addChild(_selectSprite, 10);
 
-
 	auto gm = GameManager::getInstance();
-	int page = -1;
-	int selected = gm->getSelectedIcon(gm->_mainSelectedMode);
 
-	//find out on what page the selected id is
-	for (int i = 0; page == -1; i++) {
-		int max = 36 * (i + 1);
-		if (selected >= i * 36 && selected <= max)
-			page = i;
-	}
-	_modePages[selectedGameModeInt()] = page;
-	this->setupPage(gm->_mainSelectedMode, page);
+	// Pasamos -1 y dejamos que setupPage aplique la matemática original de RobTop
+	this->setupPage(gm->_mainSelectedMode, -1);
 }
 
 const char* GarageLayer::getSpriteName(int id, bool actived)
@@ -319,11 +311,25 @@ const char* GarageLayer::getSpriteName(int id, bool actived)
 
 void GarageLayer::setupPage(IconType type, int page)
 {
-	if (_selectSprite != nullptr)
-		GameToolbox::log("posx: {}, posy {}", _selectSprite->getPositionX(), _selectSprite->getPositionY());
-	GameToolbox::log("page: {}", page);
+	auto gm = GameManager::getInstance();
 	_selectedMode = type;
-	// aqui robtop hace cosas con funciones del gamemanager, ni idea
+
+	// Obtenemos el ícono activo y el total de íconos (Traducción de activeIconForType y countForType)
+	int activeIcon = gm->getSelectedIcon(type);
+	int totalIcons = GameToolbox::getValueForGamemode(type);
+
+	// Lógica de página por defecto (-1) extraída del descompilado de IDA:
+	// v3 = floorf((float)((active - 1) / 36));
+	if (page == -1)
+	{
+		float v3 = floorf(static_cast<float>(activeIcon - 1) / 36.0f);
+		page = (v3 > 0.0f) ? static_cast<int>(v3) : 0;
+	}
+
+	// Guardamos la página actual en nuestro registro
+	_modePages[selectedGameModeInt()] = page;
+	GameToolbox::log("setupPage: Mode {}, Page {}", (int)type, page);
+
 	auto size = Director::getInstance()->getWinSize();
 
 	if (_menuIcons)
@@ -332,23 +338,19 @@ void GarageLayer::setupPage(IconType type, int page)
 	_menuIcons = Menu::create();
 	_menuIcons->setPosition(0, 0);
 
-	float paddingX = 0, paddingY = 0;
-
-	//loop vars
-	int i = page * 36;
-	i++;
-	int max = std::clamp((page + 1) * 36, i, GameToolbox::getValueForGamemode(_selectedMode));
-	int selectedForGameMode = GameManager::getInstance()->getSelectedIcon(_selectedMode);
-	GameToolbox::log("selectedForGameMode: {}", selectedForGameMode);
-
 	if (_selectSprite != nullptr)
 		_selectSprite->setVisible(false);
-	GameToolbox::log("i: {}, max: {}", i, max);
-	for (;i <= max; i++)
+
+	// Límites exactos de la página actual
+	int startIdx = (page * 36) + 1;
+	int maxIdx = std::min((page + 1) * 36, totalIcons);
+
+	// Variables de cuadrícula (Corregido para que no se desfase en páginas > 0)
+	int col = 0;
+	int row = 0;
+
+	for (int i = startIdx; i <= maxIdx; i++)
 	{
-		if (i > GameToolbox::getValueForGamemode(type))
-			break;
-		GameToolbox::log("i: {}", i);
 		auto browserItem = Sprite::createWithSpriteFrameName("playerSquare_001.png");
 		browserItem->setOpacity(0);
 
@@ -365,69 +367,99 @@ void GarageLayer::setupPage(IconType type, int page)
 			icono->setPosition(browserItem->getContentSize() / 2);
 			icono->setScale(0.9f);
 			browserItem->addChild(icono);
-		} 
+		}
 		else
 		{
 			auto icono = SimplePlayer::create(0);
 			icono->updateGamemode(i, type);
-			icono->setMainColor({175, 175, 175});
-			icono->setPosition(browserItem->getContentSize() / 2);
-			if (type == IconType::kIconTypeUfo)
-			{
-				icono->setPositionY(icono->getPositionY() + 5);
+			icono->setMainColor({ 175, 175, 175 });
+
+			ax::Vec2 iconPos = browserItem->getContentSize() / 2;
+			if (type == IconType::kIconTypeUfo) {
+				iconPos.y += 5.0f;
 				icono->m_pDomeSprite->setVisible(false);
 			}
-			icono->setScale(27.0f / icono->m_pMainSprite->getContentSize().width);
+
+			// Escala estándar. El SimplePlayer se encargará de achicar los rebeldes por dentro
+			float iconScale = 27.0f / icono->m_pMainSprite->getContentSize().width;
+
+			icono->setPosition(iconPos);
+			icono->setScale(iconScale);
 			browserItem->addChild(icono);
 		}
-		
-		// if (!gm->isIconUnlocked(i, type))
-		// {
-			// auto icon = reinterpret_cast<Sprite*>(browserItem->getChildren()->objectAtIndex(0));
-			// icon->setOpacity(75);
-
-			// const char* name = "GJ_lock_001.png";
-			// float scale	  = .75f;  // 2147483648, 4294967295
-
-			// if (GameStatsManager::sharedState()->getStoreItem(
-					// i, AchievementManager::sharedState()->convertIconTypeToUnlockType(type))) {
-				// name  = "storeItemIcon_001.png";
-				// scale = .9f;
-			// }
-
-			// auto lock = Sprite::createWithSpriteFrameName(name);
-			// lock->setScale(scale);
-			// lock->setPosition(browserItem->getContentSize() / 2);
-			// browserItem->addChild(lock);
-		// }
 
 		auto btn = MenuItemSpriteExtra::create(browserItem, [&](Node* a)
-		{
-			_iconPrev->updateGamemode(a->getTag(), _selectedMode);
-			GameToolbox::log("tag: {}", a->getTag());
-			auto gm = GameManager::getInstance();
-			gm->setSelectedIcon(_selectedMode, a->getTag());
-			gm->_mainSelectedMode = _selectedMode;
-			_selectSprite->setPosition(a->getPosition());
-			_selectSprite->setVisible(true);
-		});
+			{
+				_iconPrev->updateGamemode(a->getTag(), _selectedMode);
+				auto gm = GameManager::getInstance();
+				gm->setSelectedIcon(_selectedMode, a->getTag());
+				gm->_mainSelectedMode = _selectedMode;
+				_selectSprite->setPosition(a->getPosition());
+				_selectSprite->setVisible(true);
+			});
+
 		btn->setTag(i);
-		btn->setPosition({size.width / 2 - 165 + paddingX, size.height / 2 - 65 + 30 - paddingY});
+		btn->setPosition({ size.width / 2 - 165 + (col * 30), size.height / 2 - 65 + 30 - (row * 30) });
 		_menuIcons->addChild(btn);
-		if (i == selectedForGameMode)
+
+		// --- SISTEMA DE PUNTOS DE NAVEGACIÓN (NAV DOTS) ---
+		if (!_navDotMenu) {
+			_navDotMenu = Menu::create();
+			this->addChild(_navDotMenu);
+		}
+
+		_navDotMenu->removeAllChildren(); // Limpiamos los puntos de la pestaña anterior
+
+		// Calculamos el total de páginas (redondeando hacia arriba)
+		int totalPages = (totalIcons == 0) ? 1 : ((totalIcons - 1) / 36) + 1;
+
+		// Si hay más de una página (ej. Cubos, Naves), mostramos los puntos
+		if (totalPages > 1) {
+			_navDotMenu->setVisible(true);
+
+			for (int p = 0; p < totalPages; p++) {
+				// Si el punto corresponde a la página actual, lo encendemos
+				const char* dotName = (p == page) ? "gj_navDotBtn_on_001.png" : "gj_navDotBtn_off_001.png";
+				auto dotSprite = Sprite::createWithSpriteFrameName(dotName);
+
+				// Si quieres que resalte un poco más, RobTop a veces los escala ligeramente
+				// dotSprite->setScale(1.1f);
+
+				// Capturamos 'p' (la página del punto) y 'type' por valor para memoria segura
+				auto dotBtn = MenuItemSpriteExtra::create(dotSprite, [this, type, p](Node*) {
+					_modePages[selectedGameModeInt()] = p; // Sincronizamos la memoria de la página
+					this->setupPage(type, p);             // Recargamos el garaje en esa página
+					});
+
+				_navDotMenu->addChild(dotBtn);
+			}
+
+			// RobTop alinea estos puntos horizontalmente con un espacio exacto de 6.0f
+			_navDotMenu->alignItemsHorizontallyWithPadding(6.0f);
+
+			// Los posicionamos justo debajo del recuadro negro de los iconos
+			_navDotMenu->setPosition({ size.width / 2, size.height / 2 - 135.0f });
+		}
+		// Si solo hay una página (ej. Robot, Araña), ocultamos los puntos
+		else {
+			_navDotMenu->setVisible(false);
+		}
+		// --------------------------------------------------
+
+		// Traducción del puntero m_cursor1 del ensamblador
+		if (i == activeIcon)
 		{
-			_selectSprite->setPosition(_menuIcons->convertToNodeSpace(btn->getPosition()));
+			_selectSprite->setPosition(btn->getPosition());
 			_selectSprite->setVisible(true);
 		}
 
-
-		if (i % _numPerRow == 0)
+		// Avanzamos en la cuadrícula
+		col++;
+		if (col >= _numPerRow)
 		{
-			paddingX = 0;
-			paddingY += 30;
+			col = 0;
+			row++;
 		}
-		else
-			paddingX += 30;
 	}
 
 	this->addChild(_menuIcons);

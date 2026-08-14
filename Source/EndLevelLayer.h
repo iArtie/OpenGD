@@ -17,31 +17,28 @@
 *************************************************************************/
 
 #pragma once
-
 #include <string_view>
-
 #include "2d/Layer.h"
 
 class DropDownLayer;
 class PlayLayer;
 
-
 class EndLevelLayer : public ax::Layer {
 private:
-	DropDownLayer *_statsLayer;
-	PlayLayer *_playlayer;
+	DropDownLayer* _statsLayer;
+	PlayLayer* _playlayer;
 	bool _createdWithoutPlaylayer;
 
 	int _jumps;
 	int _attempts;
 	int _time;
-    int _stars;
+	int _stars;
 	bool _everyplay_included;
-    bool _testmode;
+	bool _testmode;
 public:
-	static EndLevelLayer* create(PlayLayer *pl);
-    static EndLevelLayer* create(int attempts, int jumps, int time, bool everyplayIncluded, int stars);
+	static EndLevelLayer* create(PlayLayer* pl);
+	static EndLevelLayer* create(int attempts, int jumps, int time, bool everyplayIncluded, int stars);
 	static std::string_view getRandomEndingString();
 
-	bool init(PlayLayer *pl);
+	bool init(PlayLayer* pl);
 };

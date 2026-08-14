@@ -18,17 +18,26 @@
 
 #pragma once
 #include "GameObject.h"
+#include <vector>
 
-namespace ax 
-{ 
-	class Sprite; 
+namespace ax
+{
+    class Sprite;
 }
-
 
 class EndPortalObject : public GameObject
 {
-	ax::Sprite* _gradientBar;
+private:
+    ax::Sprite* _gradientBar;
+    std::vector<ax::Sprite*> _squares;
+
 public:
-	static EndPortalObject* create();
-	bool init();
+    static EndPortalObject* create();
+    bool init();
+
+    virtual void setPosition(const ax::Vec2& pos) override;
+    virtual void setVisible(bool visible) override;
+
+    void updateEndPos(bool updateParticle);
+    ax::Vec2 getSpawnPos();
 };

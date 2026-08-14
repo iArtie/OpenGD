@@ -53,6 +53,7 @@ private:
 	ax::ui::TextField* _userNameField;
 	ax::Menu* _menuIcons;
 	ax::Sprite* _selectSprite;
+	ax::Menu* _navDotMenu = nullptr;
 	int _numPerRow = 12;
 	int _numPerColumn = 3;
 	int _stats = 0;

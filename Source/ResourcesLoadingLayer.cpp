@@ -60,12 +60,24 @@ bool ResourcesLoadingLayer::init()
 {
 	_fu = FileUtils::getInstance();
 
+	// --- SOLUCIÓN MULTIPLATAFORMA ---
+#if (AX_TARGET_PLATFORM == AX_PLATFORM_ANDROID)
+	// En Android, todo se lee desde la raíz de "assets"
+	_fu->addSearchPath("icons", true);
+#else
+	// En Windows/PC, los recursos viven en la carpeta "Content"
+	_fu->addSearchPath("Content/icons", true);
+	_fu->addSearchPath("Content", true);
+#endif
+	// --------------------------------
+
 	for (std::string_view a : _fu->getSearchPaths())
 	{
 		GameToolbox::log("search path: {}", a);
 	}
-	//some random files to check if theres already a path added
-	if (_fu->isFileExist("game_bg_01_001-hd.png") && _fu->isFileExist("GJ_LaunchSheet-hd.png") && _fu->isFileExist("GJ_GameSheet03-uhd.png") && _fu->isFileExist("player_01-hd.png"))
+
+	// Comprobación flexible original
+	if (_fu->isFileExist("game_bg_01_001-hd.png") && _fu->isFileExist("GJ_LaunchSheet-hd.png") && _fu->isFileExist("player_01-hd.png"))
 	{
 		loadLoadingLayer();
 		return true;
@@ -85,6 +97,13 @@ bool ResourcesLoadingLayer::init()
 		loadLoadingLayer();
 		return true;
 	}
+
+// 3. Controladores específicos por plataforma de forma limpia
+#if (AX_TARGET_PLATFORM == AX_PLATFORM_ANDROID)
+	// En Android los recursos ya vienen dentro del APK, saltamos directo al cargador de assets
+	loadLoadingLayer();
+	return true;
+#endif
 
 #if (AX_TARGET_PLATFORM == AX_PLATFORM_WIN32)
 	handleWindows();

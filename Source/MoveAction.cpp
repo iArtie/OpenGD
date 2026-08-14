@@ -69,7 +69,7 @@ void MoveAction::update(float time)
 	for (auto obj : _group->_objects)
 	{
 		obj->getPosition(&posx, &posy);
-		currentPos = {posx, posy};
+		currentPos = { posx, posy };
 		if (i == 0)
 		{
 			diff = currentPos - _prevPositions[i];
@@ -79,12 +79,12 @@ void MoveAction::update(float time)
 			_prevPositions[i] = newPos;
 			cool = newPos - currentPos;
 		}
-		else 
+		else
 		{
 			newPos = currentPos + cool;
 			obj->setPosition(newPos);
 		}
-		auto section = BaseGameLayer::sectionForPos(newPos.x);
+		auto section = bgl->sectionForPos(newPos.x);
 		section = section - 1 < 0 ? 0 : section - 1;
 		if (obj->_section != section)
 		{

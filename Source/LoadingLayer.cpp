@@ -22,6 +22,7 @@
 #include "CocosExplorer.h"
 #include "GameManager.h"
 
+#include "platform/FileUtils.h"
 #include "external/constants.h"
 #include <array>
 #include "2d/SpriteFrameCache.h"
@@ -188,98 +189,113 @@ bool LoadingLayer::init() {
 	splashText->setScale(0.7f);
 
 	this->addChild(splashText);
-	_pBar = SimpleProgressBar::create();
+	_pBar = SimpleProgressBar::create("slidergroove.png", "sliderBar.png");
 	_pBar->setPercentage(0.f);
 	_pBar->setPosition({ winSize.width / 2, splashText->getPosition().height + 40 });
 	this->addChild(_pBar);
+
+	_loadingText = ax::Label::createWithBMFont(GameToolbox::getTextureString("goldFont.fnt"), "Loading...");
+	_loadingText->setPosition({ winSize.width / 2, splashText->getPositionY() - 25.0f });
+	_loadingText->setScale(0.6f);
+	this->addChild(_loadingText);
 	
 	this->runAction(Sequence::create(DelayTime::create(0), CallFunc::create([this]() { this->loadAssets(); }), nullptr));
-	
-#if SHOW_IMGUI == true
-	CocosExplorer::openForever();
-#endif
-	
 
 	GameToolbox::log("quality medium: {}, scale factor {}", GameManager::getInstance()->isMedium(), dir->getContentScaleFactor());
 	
 	return true;
 }
 
-
-
 void LoadingLayer::loadAssets() {
-	
-	for(auto image : pngs) {
-		GameToolbox::log("image {}", image);
-		_textureCache->addImageAsync(GameToolbox::getTextureString(image), AX_CALLBACK_1(LoadingLayer::assetLoaded, this));
-	}
-	
-	for(auto plist : plists) {
-		GameToolbox::log("plist {}", plist);
-		_sprFrameCache->addSpriteFramesWithFile(GameToolbox::getTextureString(plist));
-		this->assetLoaded(nullptr);
-	}
-	
-	for(auto fnt : fonts) {
-		GameToolbox::log("font {}", fnt);
-		Label::createWithBMFont(GameToolbox::getTextureString(fnt), "someText");
-		this->assetLoaded(nullptr);
+	// 1. Cargamos imágenes PNG de forma asíncrona
+	for (auto image : pngs) {
+		_textureCache->addImageAsync(GameToolbox::getTextureString(image), [this, image](Texture2D*) {
+			this->assetLoaded(image);
+			});
 	}
 
-	loadIcons();
+	// 2. Cargamos Plists uno a uno notificando a la UI
+	for (auto plist : plists) {
+		_sprFrameCache->addSpriteFramesWithFile(GameToolbox::getTextureString(plist));
+		this->assetLoaded(plist);
+	}
+
+	// 3. Cargamos Fuentes
+	for (auto fnt : fonts) {
+		Label::createWithBMFont(GameToolbox::getTextureString(fnt), "someText");
+		this->assetLoaded(fnt);
+	}
+
+	// 4. Preparamos la cola de iconos para cargarla progresivamente por frames
+	auto prepareQueue = [this](const std::string& formatStr, int maxCount) {
+		for (int i = 0; i < maxCount; i++) {
+			_iconQueue.push_back(ax::StringUtils::format(formatStr.c_str(), i));
+		}
+		};
+
+	prepareQueue("player_%02d.plist", getPlayerIconsSize());
+	prepareQueue("ship_%02d.plist", getShipIconsSize());
+	prepareQueue("player_ball_%02d.plist", getPlayerBallIconsSize());
+	prepareQueue("bird_%02d.plist", getBirdIconsSize());
+
+	_iconIndex = 0;
+
+	// Activamos un selector que cargará unos cuantos iconos por fotograma
+	this->schedule(AX_SCHEDULE_SELECTOR(LoadingLayer::loadIconsStep), 0.01f);
 }
 
-void LoadingLayer::assetLoaded(ax::Object*)
+void LoadingLayer::assetLoaded(const std::string& filename)
 {
-	
 	this->m_nAssetsLoaded++;
-	GameToolbox::log("loading asset {} out of {}", (int)m_nAssetsLoaded, (int)m_nTotalAssets);
-	_pBar->setPercentage((m_nAssetsLoaded / m_nTotalAssets)*100.f);
 
-	if(m_nAssetsLoaded == m_nTotalAssets) {
+	if (!filename.empty()) {
+		_loadingText->setBMFontFilePath(GameToolbox::getTextureString("goldFont.fnt"));
+		_loadingText->setString(fmt::format("Loading: {}", filename));
+	}
+
+	_pBar->setPercentage((m_nAssetsLoaded / m_nTotalAssets) * 100.f);
+
+	if (m_nAssetsLoaded == m_nTotalAssets) {
 		Director::getInstance()->replaceScene(MenuLayer::scene());
 	}
 }
 
-void LoadingLayer::loadIcons()
-{
-	for (int i = 0; i < getPlayerIconsSize(); i++) {
-		std::string plist = StringUtils::format("player_%02d.plist", i);
-
-		GameToolbox::log("player icon plist {}", plist);
-
-		_sprFrameCache->addSpriteFramesWithFile(GameToolbox::getTextureString(plist));
-		this->assetLoaded(nullptr);
+void LoadingLayer::loadIconsStep(float dt) {
+	if (_iconIndex >= _iconQueue.size()) {
+		this->unschedule(AX_SCHEDULE_SELECTOR(LoadingLayer::loadIconsStep));
+		return;
 	}
-	for (int i = 0; i < getShipIconsSize(); i++) {
-		std::string plist = StringUtils::format("ship_%02d.plist", i);
 
-		GameToolbox::log("ship icon plist {}", plist);
+	auto fu = ax::FileUtils::getInstance();
 
-		_sprFrameCache->addSpriteFramesWithFile(GameToolbox::getTextureString(plist));
-		this->assetLoaded(nullptr);
-	}
-	for (int i = 0; i < getPlayerBallIconsSize(); i++) {
-		std::string plist = StringUtils::format("player_ball_%02d.plist", i);
+	// Cargamos un lote pequeño por frame (ej. 3 iconos por fotograma para que sea rápido pero visible)
+	int batchSize = 3;
+	for (int b = 0; b < batchSize && _iconIndex < _iconQueue.size(); b++, _iconIndex++) {
+		std::string plist = _iconQueue[_iconIndex];
 
-		GameToolbox::log("player ball icon plist {}", plist);
+		std::string nameUHD = plist;
+		nameUHD.insert(nameUHD.find_last_of('.'), "-uhd");
 
-		_sprFrameCache->addSpriteFramesWithFile(GameToolbox::getTextureString(plist));
-		this->assetLoaded(nullptr);
-	}
-	for (int i = 0; i < getBirdIconsSize(); i++) {
-		std::string plist = StringUtils::format("bird_%02d.plist", i);
+		std::string nameHD = plist;
+		nameHD.insert(nameHD.find_last_of('.'), "-hd");
 
-		GameToolbox::log("bird icon plist {}", plist);
+		if (fu->isFileExist(nameUHD)) {
+			_sprFrameCache->addSpriteFramesWithFile(nameUHD);
+		}
+		else if (fu->isFileExist(nameHD)) {
+			_sprFrameCache->addSpriteFramesWithFile(nameHD);
+		}
+		else if (fu->isFileExist(plist)) {
+			_sprFrameCache->addSpriteFramesWithFile(plist);
+		}
 
-		_sprFrameCache->addSpriteFramesWithFile(GameToolbox::getTextureString(plist));
-		this->assetLoaded(nullptr);
+		this->assetLoaded(plist);
 	}
 }
 
 int LoadingLayer::getPlayerIconsSize()
 {
-	return 135;
+	return 143;
 	// return 14;
 }
 int LoadingLayer::getShipIconsSize()

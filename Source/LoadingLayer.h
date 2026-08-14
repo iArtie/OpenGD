@@ -18,6 +18,9 @@
 
 #pragma once
 #include "2d/Layer.h"
+#include "2d/Label.h"
+#include <vector>
+#include <string>
 
 class SimpleProgressBar;
 
@@ -31,20 +34,25 @@ namespace ax
 
 class LoadingLayer : public ax::Layer {
 private:
-	void loadIcons();
+	void loadIconsStep(float dt);
 
 	int getPlayerIconsSize();
 	int getShipIconsSize();
 	int getPlayerBallIconsSize();
 	int getBirdIconsSize();
+
+	// Variables para la cola de carga progresiva
+	std::vector<std::string> _iconQueue;
+	size_t _iconIndex = 0;
 public:
 	const char* getSplash();
 	static ax::Scene* scene();
 	static LoadingLayer* create();
 	bool init();
 	void loadAssets();
-	void assetLoaded(ax::Object*);
+	void assetLoaded(const std::string& filename = "");
 	SimpleProgressBar* _pBar;
+	ax::Label* _loadingText;
 	
 	float m_nAssetsLoaded = 0;
 	float m_nTotalAssets = 0;

@@ -44,4 +44,5 @@ public:
 	void update(float dt) override;
 	bool init(int groundID);
 	static GroundLayer* create(int groundID);
+    virtual void setColor(const ax::Color3B& color) override;
 };

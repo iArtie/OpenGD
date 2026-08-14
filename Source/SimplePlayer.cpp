@@ -24,6 +24,7 @@
 
 #include "GameToolbox/math.h"
 #include "GameToolbox/conv.h"
+#include "2d/SpriteFrameCache.h"
 
 USING_NS_AX;
 
@@ -32,13 +33,13 @@ bool SimplePlayer::init(int cubeID) {
 
 	this->updateGamemode(cubeID, IconType::kIconTypeCube);
 	this->setContentSize({ 60, 60 });
-	this->setAnchorPoint({.25f, .25f});
+	this->setAnchorPoint({ 0.5f, 0.5f });
 
 	return true;
 }
 
 void SimplePlayer::updateGamemode(int iconID, IconType mode) {
-		iconID = GameToolbox::inRange(iconID, 1, GameToolbox::getValueForGamemode(mode));
+	iconID = GameToolbox::inRange(iconID, 1, GameToolbox::getValueForGamemode(mode));
 
 	auto tipo = GameToolbox::getNameGamemode(mode);
 
@@ -54,43 +55,57 @@ void SimplePlayer::updateGamemode(int iconID, IconType mode) {
 	if (m_pExtraSprite) this->removeChild(m_pExtraSprite);
 	if (m_pDomeSprite) this->removeChild(m_pDomeSprite);
 
-	// Main Color
-	m_pMainSprite = Sprite::createWithSpriteFrameName(mainFrame);
-	if (!m_pMainSprite) m_pMainSprite = Sprite::createWithSpriteFrameName("GJ_arrow_03_001.png");
-	m_pMainSprite->setAnchorPoint({ 0, 0 });
-	m_pMainSprite->setStretchEnabled(false);
-	this->addChild(m_pMainSprite);
+	auto frameCache = ax::SpriteFrameCache::getInstance();
 
-	// Second Color
-	m_pSecondarySprite = Sprite::createWithSpriteFrameName(secFrame);
-	if (!m_pSecondarySprite) m_pSecondarySprite = Sprite::createWithSpriteFrameName("GJ_arrow_03_001.png");
-	m_pSecondarySprite->setPosition(m_pMainSprite->getContentSize() / 2);
-	m_pSecondarySprite->setStretchEnabled(false);
-	this->addChild(m_pSecondarySprite, -1);
-
-	// Glow
-	m_pGlowSprite = Sprite::createWithSpriteFrameName(glowFrame);
-	if (!m_pGlowSprite) m_pGlowSprite = Sprite::createWithSpriteFrameName("GJ_arrow_03_001.png");
-	m_pGlowSprite->setPosition(m_pMainSprite->getContentSize() / 2);
-	m_pGlowSprite->setStretchEnabled(false);
-	m_pGlowSprite->setVisible(m_bHasGlow);
-	this->addChild(m_pGlowSprite, -1);
-
-	// Extra
-	m_pExtraSprite = Sprite::createWithSpriteFrameName(extFrame);
-	if (m_pExtraSprite) {
-		m_pExtraSprite->setPosition(this->m_pMainSprite->getContentSize() / 2);
-		m_pExtraSprite->setStretchEnabled(false);
-		this->addChild(m_pExtraSprite);
+	// 1. MAIN COLOR (Capa Base)
+	if (frameCache->getSpriteFrameByName(mainFrame)) {
+		m_pMainSprite = Sprite::createWithSpriteFrameName(mainFrame);
+	}
+	else {
+		m_pMainSprite = Sprite::createWithSpriteFrameName("GJ_arrow_03_001.png");
 	}
 
-	// Dome
+	// Centramos el sprite base en nuestro contenedor de 60x60
+	m_pMainSprite->setPosition(this->getContentSize() / 2);
+	m_pMainSprite->setScale(1.0f);
+
+	this->addChild(m_pMainSprite);
+
+	// 2. SECONDARY COLOR
+	if (frameCache->getSpriteFrameByName(secFrame)) {
+		m_pSecondarySprite = Sprite::createWithSpriteFrameName(secFrame);
+	}
+	else {
+		m_pSecondarySprite = Sprite::createWithSpriteFrameName("GJ_arrow_03_001.png");
+	}
+	// Al añadirlo como hijo, su posición es relativa al centro de m_pMainSprite
+	m_pSecondarySprite->setPosition(m_pMainSprite->getContentSize() / 2);
+	m_pMainSprite->addChild(m_pSecondarySprite, -1);
+
+	// 3. GLOW
+	if (frameCache->getSpriteFrameByName(glowFrame)) {
+		m_pGlowSprite = Sprite::createWithSpriteFrameName(glowFrame);
+	}
+	else {
+		m_pGlowSprite = Sprite::createWithSpriteFrameName("GJ_arrow_03_001.png");
+	}
+	m_pGlowSprite->setPosition(m_pMainSprite->getContentSize() / 2);
+	m_pGlowSprite->setVisible(m_bHasGlow);
+	m_pMainSprite->addChild(m_pGlowSprite, -2);
+
+	// 4. EXTRA (Detalles)
+	if (frameCache->getSpriteFrameByName(extFrame)) {
+		m_pExtraSprite = Sprite::createWithSpriteFrameName(extFrame);
+		m_pExtraSprite->setPosition(m_pMainSprite->getContentSize() / 2);
+		m_pMainSprite->addChild(m_pExtraSprite, 1);
+	}
+
+	// 5. DOME (Cúpula del UFO)
 	if (mode == IconType::kIconTypeUfo) {
-		m_pDomeSprite = Sprite::createWithSpriteFrameName(domeFrame);
-		if (m_pDomeSprite) {
-			m_pDomeSprite->setPosition(this->m_pMainSprite->getContentSize() / 2);
-			m_pDomeSprite->setStretchEnabled(false);
-			this->addChild(m_pDomeSprite, -1);
+		if (frameCache->getSpriteFrameByName(domeFrame)) {
+			m_pDomeSprite = Sprite::createWithSpriteFrameName(domeFrame);
+			m_pDomeSprite->setPosition(m_pMainSprite->getContentSize() / 2);
+			m_pMainSprite->addChild(m_pDomeSprite, -1);
 		}
 	}
 

@@ -24,26 +24,43 @@
 #include "2d/Layer.h"
 #include "2d/ActionTween.h"
 
-class BoomScrollLayer : public ax::Layer, public ax::ActionTweenDelegate {
+// Eliminamos ActionTweenDelegate, usaremos Actions estándar de Axmol
+class BoomScrollLayer : public ax::Layer {
 private:
-	virtual void updateTweenAction(float value, std::string_view key) override {};
 	ax::Layer* _internalLayer;
 
-	float _dragMovement;
+	// --- VARIABLES DE TOQUE (ESTILO ROBTOP) ---
+	bool _touching = false;
+	ax::Vec2 _touchBeganPoint;
+	ax::Vec2 _touchLastPoint;
+	float _touchStartTime = 0.0f;
+	float _velocity = 0.0f;
+
+	// Configuraciones de sensibilidad
+	float _minimumTouchLengthToChangePage = 40.0f;
+	float _swipeThresholdVelocity = 500.0f; // Píxeles por segundo
 
 public:
 
 	int _currentPage, _leftPage, _rightPage;
 	int _totalPages;
 	std::vector<ax::Layer*> _layers;
-	
-	bool init(std::vector<ax::Layer*>, int);
+
+	bool init(std::vector<ax::Layer*> layers, int currentPage);
 	static BoomScrollLayer* create(std::vector<ax::Layer*> layers, int currentPage);
+
 	void selectPage(int current);
 	void changePageRight();
 	void changePageLeft();
-	// bool onTouchBegan(ax::Touch *touch, ax::Event *event);
-	// void onTouchEnded(ax::Touch *touch, ax::Event *event);
-	// void onTouchMoved(ax::Touch *touch, ax::Event *event);
+
+	// Animación base de salto de página
+	void animateToPage(int direction);
+
+	// Restauramos el sistema táctil usando EventListeners modernos
+	bool onTouchBegan(ax::Touch* touch, ax::Event* event);
+	void onTouchEnded(ax::Touch* touch, ax::Event* event);
+	void onTouchMoved(ax::Touch* touch, ax::Event* event);
+	void onTouchCancelled(ax::Touch* touch, ax::Event* event);
+
 	void onExit() override;
 };

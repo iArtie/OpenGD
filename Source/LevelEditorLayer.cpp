@@ -38,6 +38,8 @@
 
 #include "GJGameLevel.h"
 
+float gameSpeed = 1.0f;
+
 ax::Scene* LevelEditorLayer::scene(GJGameLevel* level) {
 	auto scene = ax::Scene::create();
 	scene->addChild(LevelEditorLayer::create(level));
@@ -143,19 +145,18 @@ void LevelEditorLayer::onEnter() {
 	auto listener = ax::EventListenerKeyboard::create();
 	auto dir = ax::Director::getInstance();
 
-	listener->onKeyPressed = AX_CALLBACK_2(LevelEditorLayer::onKeyPressed, this);
 	listener->onKeyReleased = AX_CALLBACK_2(LevelEditorLayer::onKeyReleased, this);
 	dir->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listener, this);
 
 	auto current = dir->getRunningScene();
 #if SHOW_IMGUI == true
-	
+
 	ax::extension::ImGuiPresenter::getInstance()->addRenderLoop("#playlayer", AX_CALLBACK_0(LevelEditorLayer::onDrawImGui, this), current);
 #endif
 };
 
 void LevelEditorLayer::destroyPlayer(PlayerObject* player) {
-	if (_inPlaybackMode) PlayLayer::destroyPlayer(player);
+	if (_inPlaybackMode) PlayLayer::destroyPlayer(player, nullptr);
 };
 
 void LevelEditorLayer::onKeyPressed(ax::EventKeyboard::KeyCode keyCode, ax::Event* event)

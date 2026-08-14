@@ -40,6 +40,21 @@
 
 USING_NS_AX;
 
+ax::Color3B getColorForPage(int page) {
+	int colorIdx = page % 9;
+	switch (colorIdx) {
+	case 0: return { 40, 125, 255 };  // Azul (Stereo Madness)
+	case 1: return { 0, 255, 0 };     // Verde
+	case 2: return { 0, 255, 255 };   // Cian
+	case 3: return { 255, 0, 0 };     // Rojo
+	case 4: return { 255, 125, 0 };   // Naranja
+	case 5: return { 255, 255, 0 };   // Amarillo
+	case 6: return { 125, 0, 255 };   // Morado
+	case 7: return { 255, 0, 255 };   // Magenta
+	case 8: return { 255, 125, 125 }; // Rosa
+	default: return { 40, 125, 255 };
+	}
+}
 
 Scene* LevelSelectLayer::scene(int page)
 {
@@ -79,6 +94,12 @@ bool LevelSelectLayer::init(int page)
 	_ground = GroundLayer::create(1);
 	_ground->setPositionY(-25.f);
 	addChild(_ground, -1);
+
+	auto topBar = Sprite::createWithSpriteFrameName("GJ_topBar_001.png");
+	topBar->setPosition({ winSize.width / 2, winSize.height });
+	topBar->setAnchorPoint({ 0.5, 1.0 });
+	topBar->setContentSize({ 306.5, 36 });
+	addChild(topBar);
 
 	GameToolbox::createCorners(this, false, false, true, true);
 	
@@ -120,6 +141,81 @@ bool LevelSelectLayer::init(int page)
 	_levelPages = layers;
 	_bsl = BoomScrollLayer::create(layers, page);
 	addChild(_bsl);
+
+	// Aplicamos el color de la página inicial al fondo y al suelo
+	auto initialColor = getColorForPage(page);
+	_background->setColor(initialColor);
+
+	if (_ground && _ground->_sprite) {
+		ax::Color3B groundColor;
+		groundColor.r = initialColor.r * 0.8f;
+		groundColor.g = initialColor.g * 0.8f;
+		groundColor.b = initialColor.b * 0.8f;
+
+		// Aplicamos el color ÚNICAMENTE al sprite del piso
+		_ground->_sprite->setColor(groundColor);
+	}
+
+	this->schedule([this](float dt) {
+		if (!_bsl) return;
+
+		auto internalLayer = _bsl->getChildByTag(1234);
+		if (!internalLayer) return;
+
+		auto winSize = ax::Director::getInstance()->getWinSize();
+		float scrollX = -internalLayer->getPositionX();
+		float exactPage = scrollX / winSize.width;
+
+		// Blindamos las páginas para evitar crasheos en los bordes
+		float maxPages = std::max(0, (int)_levelPages.size() - 1);
+
+		// Obtenemos los índices de las páginas sin clampear exactPage aún (para detectar el rebote)
+		int page1 = static_cast<int>(std::floor(exactPage));
+		int page2 = page1 + 1;
+
+		page1 = std::clamp(page1, 0, (int)maxPages);
+		page2 = std::clamp(page2, 0, (int)maxPages);
+
+		// Obtenemos el porcentaje puro de qué tan lejos estamos entre dos páginas (0.0 a 1.0)
+		float rawPercentage = exactPage - std::floor(exactPage);
+
+		// --- EL SECRETO DE ROBTOP: LA ZONA MUERTA ---
+		// El color solo transiciona en el centro de la pantalla.
+		// Esto protege los colores de la animación de rebote elástico.
+		float percentage = 0.0f;
+		if (rawPercentage > 0.3f && rawPercentage < 0.7f) {
+			// Si estamos en el medio, calculamos la mezcla suave
+			percentage = (rawPercentage - 0.3f) / 0.4f;
+		}
+		else if (rawPercentage >= 0.7f) {
+			// Si ya pasamos el 70% o estamos rebotando hacia adelante, mostramos 100% el color objetivo
+			percentage = 1.0f;
+		} // Si es menor a 0.3, percentage se queda en 0.0f (color actual)
+
+		auto color1 = getColorForPage(page1);
+		auto color2 = getColorForPage(page2);
+
+		// Interpolación lineal
+		ax::Color3B finalColor;
+		finalColor.r = color1.r + (color2.r - color1.r) * percentage;
+		finalColor.g = color1.g + (color2.g - color1.g) * percentage;
+		finalColor.b = color1.b + (color2.b - color1.b) * percentage;
+
+		_background->setColor(finalColor);
+
+		// --- MULTIPLICADOR DE SUELO DE GD ---
+		if (_ground) {
+			ax::Color3B groundColor;
+			groundColor.r = finalColor.r * 0.8f;
+			groundColor.g = finalColor.g * 0.8f;
+			groundColor.b = finalColor.b * 0.8f;
+
+			// Como sobrescribimos setColor, el GroundLayer sabrá 
+			// que solo debe pintar los cuadros y no la línea.
+			_ground->setColor(groundColor);
+		}
+
+		}, "color_updater");
 
 	auto btnMenu = Menu::create();
 	addChild(btnMenu, 5);
@@ -200,19 +296,21 @@ bool LevelSelectLayer::init(int page)
 
 	listener->onKeyPressed = [this](EventKeyboard::KeyCode code, Event const*)
 	{
-		using enum ax::EventKeyboard::KeyCode;
-		if (code == KEY_ESCAPE)
+		if (code == ax::EventKeyboard::KeyCode::KEY_ESCAPE)
 		{
 			auto scene = MenuLayer::scene();
 			Director::getInstance()->replaceScene(TransitionFade::create(0.5f, scene));
 			// GameToolbox::popSceneWithTransition(0.5f);
 		}
-		else if (code == KEY_LEFT_ARROW) {
+		else if (code == ax::EventKeyboard::KeyCode::KEY_LEFT_ARROW) {
 			_bsl->changePageLeft();
-		} else if (code == KEY_RIGHT_ARROW) {
+		}
+		else if (code == ax::EventKeyboard::KeyCode::KEY_RIGHT_ARROW) {
 			_bsl->changePageRight();
-		} else if (code == KEY_SPACE)
+		}
+		else if (code == ax::EventKeyboard::KeyCode::KEY_SPACE || code == ax::EventKeyboard::KeyCode::KEY_ENTER)
 		{
+			// Evitamos crashear si el usuario presiona espacio mientras se desliza la pantalla
 			if (auto currentLevelPage = dynamic_cast<LevelPage*>(_bsl->_layers.at(_bsl->_currentPage)))
 			{
 				currentLevelPage->onPlay(nullptr);
@@ -230,17 +328,20 @@ void LevelSelectLayer::onExit()
 {
 	_ground->unscheduleUpdate();
 
-	if (LevelPage::replacingScene)
-		return;
-
-	for (const auto& page : _levelPages)
+	// Si NO estamos reemplazando la escena, limpiamos los niveles
+	if (!LevelPage::replacingScene)
 	{
-		if (LevelPage* levelPage = dynamic_cast<LevelPage*>(page))
+		for (const auto& page : _levelPages)
 		{
-			if (GJGameLevel* level = levelPage->_level; level) {
-				delete level;
+			if (LevelPage* levelPage = dynamic_cast<LevelPage*>(page))
+			{
+				if (GJGameLevel* level = levelPage->_level; level) {
+					delete level;
+				}
 			}
 		}
 	}
+
+	// ¡MUY IMPORTANTE! Esta línea siempre debe ejecutarse al final
 	Layer::onExit();
 }

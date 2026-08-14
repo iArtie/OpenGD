@@ -46,7 +46,7 @@ bool GroundLayer::init(int groundID)
 	this->_sprite->setTextureRect({0, 0, winSize.width + this->m_fOneGroundSize, _sprite->getTextureRect().size.height});
 	this->_sprite->setAnchorPoint({0, 0});
 	this->_sprite->setPosition({0, -50});
-	this->_sprite->setColor({0, 102, 255});
+	this->_sprite->setColor({ 0, 102, 255 });
 	this->addChild(this->_sprite);
 
 	auto line = Sprite::createWithSpriteFrameName("floorLine_001.png");
@@ -76,6 +76,17 @@ bool GroundLayer::init(int groundID)
 	return true;
 }
 
+void GroundLayer::setColor(const ax::Color3B& color)
+{
+	// 1. Guardamos el color en el Layer base (por si el motor lo necesita)
+	Layer::setColor(color);
+
+	// 2. Le pasamos el color ÚNICAMENTE al sprite de los cuadritos
+	if (_sprite) {
+		_sprite->setColor(color);
+	}
+}
+
 void GroundLayer::updateTweenAction(float value, std::string_view key)
 {
 	if (key == "y") setPositionY(value);
@@ -83,15 +94,26 @@ void GroundLayer::updateTweenAction(float value, std::string_view key)
 
 void GroundLayer::update(float dt)
 {
-	if (auto pl = BaseGameLayer::getInstance())
+	if (auto pl = dynamic_cast<PlayLayer*>(BaseGameLayer::getInstance()))
 	{
 		if (pl->_colorChannels.contains(1001)) _sprite->setColor(pl->_colorChannels.at(1001)._color);
+
+		// Sincronizamos la velocidad base
+		if (pl->_player1 && !pl->_isPaused) {
+			this->m_fSpeed = pl->_player1->m_dXVel;
+		}
 	}
 
-	this->_sprite->setPositionX(this->_sprite->getPositionX() - dt * this->m_fSpeed);
+	// Calculamos la nueva posición flotante
+	float newX = this->_sprite->getPositionX() - (dt * this->m_fSpeed);
 
-	if (this->_sprite->getPositionX() <= -128.0f) this->_sprite->setPositionX(0);
-	if (this->_sprite->getPositionX() >= 64.0f) this->_sprite->setPositionX(-64);
+	// FIX DEFINITIVO: Conservar los decimales al hacer el bucle (Loop).
+	// Al sumar/restar 128 en lugar de igualar a 0 o -64, evitamos perder 
+	// los milímetros extra que causaban la desincronización visual.
+	while (newX <= -128.0f) newX += 128.0f;
+	while (newX >= 64.0f)  newX -= 128.0f;
+
+	this->_sprite->setPositionX(newX);
 }
 
 GroundLayer* GroundLayer::create(int groundID)

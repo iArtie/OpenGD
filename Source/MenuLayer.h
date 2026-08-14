@@ -23,10 +23,11 @@
 class MenuItemSpriteExtra;
 class MenuGameLayer;
 
-namespace ax 
-{ 
-	class Scene; 
-	class Label;
+namespace ax
+{
+    class Scene;
+    class Label;
+    class EventListenerKeyboard; // <--- AGREGAR ESTA LÍNEA
 }
 
 extern bool music;

@@ -115,12 +115,16 @@ set(GAME_INC_DIRS
 
 set(content_folder
     "${CMAKE_CURRENT_SOURCE_DIR}/Content"
-    )
+)
 
+# Reglas de copiado de recursos según plataforma
 if(APPLE)
     ax_mark_multi_resources(common_content_files RES_TO "Resources" FOLDERS ${content_folder})
 elseif(WINDOWS)
     ax_mark_multi_resources(common_content_files RES_TO "Content" FOLDERS ${content_folder})
+elseif(ANDROID)
+    # En Android, los recursos DEBEN ir a la raíz de la carpeta assets dentro del APK
+    ax_mark_multi_resources(common_content_files RES_TO "" FOLDERS ${content_folder})
 endif()
 
 if(ANDROID)
@@ -199,17 +203,37 @@ set(APP_SOURCES
     ${GAME_SOURCE}
     )
 if(NOT ANDROID)
-    add_executable(${APP_NAME} ${APP_SOURCES})
+    add_executable(${APP_NAME} ${APP_SOURCES} "Source/PauseLayer.h" "Source/PauseLayer.cpp" "Source/FMODAudioEngine.h" "Source/FMODAudioEngine.cpp")
 else()
     add_library(${APP_NAME} SHARED ${APP_SOURCES})
-    # whole archive for jni
+    # Firma plana (sin PRIVATE)
     target_link_libraries(${APP_NAME} -Wl,--whole-archive cpp_android_spec -Wl,--no-whole-archive)
     config_android_shared_libs("dev.axmol.lib" "${CMAKE_CURRENT_SOURCE_DIR}/proj.android/app/src")
 endif()
 
 if (NOT _AX_USE_PREBUILT)
+    # Firma plana (sin PRIVATE)
     target_link_libraries(${APP_NAME} ${_AX_CORE_LIB})
 endif()
+
+# --- INICIO DE CONFIGURACIÓN FMOD ---
+set(FMOD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/axmol/3rdparty/fmod")
+target_include_directories(${APP_NAME} PRIVATE ${FMOD_DIR}/incl)
+
+if(WIN32)
+    target_link_libraries(${APP_NAME} "${FMOD_DIR}/lib/x64/fmod_vc.lib")
+    add_custom_command(TARGET ${APP_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${FMOD_DIR}/lib/x64/fmod.dll"
+        $<TARGET_FILE_DIR:${APP_NAME}>
+    )
+elseif(ANDROID)
+    # FORMA CORRECTA Y SEGURA DE ENLAZAR LIBRERÍAS PRECOMPILADAS EN ANDROID
+    add_library(fmod SHARED IMPORTED)
+    set_target_properties(fmod PROPERTIES IMPORTED_LOCATION "${FMOD_DIR}/lib/android/${ANDROID_ABI}/libfmod.so")
+    target_link_libraries(${APP_NAME} fmod)
+endif()
+# --- FIN DE CONFIGURACIÓN FMOD ---
 
 # The optional thirdparties(not dependent by engine)
 if (AX_WITH_YAML_CPP)
