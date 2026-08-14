@@ -218,6 +218,12 @@ endif()
 
 # --- INICIO DE CONFIGURACIÓN FMOD ---
 set(FMOD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/axmol/3rdparty/fmod")
+if(NOT IS_DIRECTORY "${FMOD_DIR}")
+    set(FMOD_DIR "${_AX_ROOT}/3rdparty/fmod")
+    message(STATUS "FMOD_DIR: using _AX_ROOT -> ${FMOD_DIR}")
+else()
+    message(STATUS "FMOD_DIR: using embedded axmol -> ${FMOD_DIR}")
+endif()
 target_include_directories(${APP_NAME} PRIVATE ${FMOD_DIR}/incl)
 
 if(WIN32)
