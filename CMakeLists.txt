@@ -70,8 +70,10 @@ if(WIN32)
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/run.bat.in" "${CMAKE_CURRENT_SOURCE_DIR}/run.bat" @ONLY)
 endif()
 
+option(AX_FORCE_ENV_ROOT "Use AX_ROOT env var instead of embedded axmol/ folder" ON) # Cypher, para que te funque nomas cambia el ON a OFF
+
 set(_is_axmol_embed FALSE)
-if (IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/axmol")
+if ((NOT AX_FORCE_ENV_ROOT) AND IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/axmol")
     set(_AX_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/axmol")
     set(_is_axmol_embed TRUE)
     message(STATUS "Building isolated project: ${APP_NAME}")
@@ -84,6 +86,8 @@ else()
         message(FATAL_ERROR "Please run setup.ps1 add system env var 'AX_ROOT' to specific the engine root")
     endif()
 endif()
+
+
 
 set(CMAKE_MODULE_PATH ${_AX_ROOT}/cmake/Modules/)
 
@@ -113,17 +117,60 @@ set(GAME_INC_DIRS
   "${CMAKE_CURRENT_SOURCE_DIR}/Source"
 )
 
-set(content_folder
-    "${CMAKE_CURRENT_SOURCE_DIR}/Content"
-)
+set(content_folder "${CMAKE_CURRENT_SOURCE_DIR}/Content")
+set(RESOURCES_URL "https://github.com/iArtie/GDSources/releases/download/v1.0/resources.zip")
 
-# Reglas de copiado de recursos según plataforma
+if(NOT IS_DIRECTORY "${content_folder}")
+    message(STATUS "Content/ not found. Downloading from ${RESOURCES_URL}...")
+
+    set(ZIP_PATH "${CMAKE_CURRENT_BINARY_DIR}/resources.zip")
+
+    file(DOWNLOAD
+        "${RESOURCES_URL}"
+        "${ZIP_PATH}"
+        SHOW_PROGRESS
+        STATUS DL_STATUS
+    )
+    list(GET DL_STATUS 0 DL_CODE)
+    list(GET DL_STATUS 1 DL_MSG)
+
+    if(NOT DL_CODE EQUAL 0)
+        message(FATAL_ERROR "Failed to download resources.zip: ${DL_MSG}")
+    endif()
+
+    message(STATUS "Extracting resources.zip...")
+    file(MAKE_DIRECTORY "${content_folder}")
+    file(ARCHIVE_EXTRACT INPUT "${ZIP_PATH}" DESTINATION "${content_folder}")
+    file(REMOVE "${ZIP_PATH}")
+
+    # If the zip contained a single top-level folder, flatten it into content_folder directly
+    file(GLOB CONTENT_TOP_ITEMS "${content_folder}/*")
+    list(LENGTH CONTENT_TOP_ITEMS CONTENT_TOP_COUNT)
+    if(CONTENT_TOP_COUNT EQUAL 1)
+        list(GET CONTENT_TOP_ITEMS 0 NESTED_ITEM)
+        if(IS_DIRECTORY "${NESTED_ITEM}")
+            message(STATUS "Flattening nested folder: ${NESTED_ITEM}")
+            file(GLOB NESTED_CONTENTS "${NESTED_ITEM}/*")
+            foreach(ITEM ${NESTED_CONTENTS})
+                get_filename_component(ITEM_NAME "${ITEM}" NAME)
+                file(RENAME "${ITEM}" "${content_folder}/${ITEM_NAME}")
+            endforeach()
+            file(REMOVE_RECURSE "${NESTED_ITEM}")
+        endif()
+    endif()
+
+    message(STATUS "Content/ ready at ${content_folder}")
+else()
+    message(STATUS "Content/ already exists, skipping download.")
+endif()
+
+
 if(APPLE)
     ax_mark_multi_resources(common_content_files RES_TO "Resources" FOLDERS ${content_folder})
 elseif(WINDOWS)
-    ax_mark_multi_resources(common_content_files RES_TO "Content" FOLDERS ${content_folder})
+    ax_mark_multi_resources(common_content_files RES_TO "" FOLDERS ${content_folder})
 elseif(ANDROID)
-    # En Android, los recursos DEBEN ir a la raíz de la carpeta assets dentro del APK
+ 
     ax_mark_multi_resources(common_content_files RES_TO "" FOLDERS ${content_folder})
 endif()
 

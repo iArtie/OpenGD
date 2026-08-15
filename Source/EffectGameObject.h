@@ -1,19 +1,19 @@
 /*************************************************************************
-    OpenGD - Open source Geometry Dash.
-    Copyright (C) 2023  OpenGD Team
+	OpenGD - Open source Geometry Dash.
+	Copyright (C) 2023  OpenGD Team
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License    
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 *************************************************************************/
 
 #pragma once
@@ -24,8 +24,8 @@
 #include "math/Vec2.h"
 
 class BaseGameLayer;
-namespace ax 
-{ 
+namespace ax
+{
 	class Action;
 	class ActionInterval;
 }
@@ -41,7 +41,7 @@ public:
 	GDHSV _hsv;
 	float _opacity = 1.0f;
 	int _targetColorId = 1, _targetGroupId = -1;
-	bool _wasTriggerActivated;
+	bool _wasTriggerActivated = false;
 	int _copiedColorId = -1;
 
 	float _fadeIn, _hold, _fadeOut;
@@ -59,6 +59,15 @@ public:
 	float _easeRate;
 
 	bool _lockToPlayerX, _lockToPlayerY;
+
+
+	int _itemID = 0;
+	int _count = 0;
+	bool _subtractCount = false;
+
+	bool _holdMode = false;
+	int _toggleMode = 0;
+	bool _dualMode = false;
 
 private:
 	virtual void updateTweenAction(float value, std::string_view key) override;

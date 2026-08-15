@@ -1,19 +1,19 @@
 /*************************************************************************
-    OpenGD - Open source Geometry Dash.
-    Copyright (C) 2023  OpenGD Team
+	OpenGD - Open source Geometry Dash.
+	Copyright (C) 2023  OpenGD Team
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License    
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 *************************************************************************/
 
 #include "GJGameLevel.h"
@@ -25,7 +25,7 @@
 
 //the only thing we actually want as normal string is the class members
 static inline std::string _toString(std::string_view s) {
-	return {s.begin(), s.end()};
+	return { s.begin(), s.end() };
 }
 
 GJGameLevel* GJGameLevel::createWithResponse(std::string_view backendResponse)
@@ -33,7 +33,7 @@ GJGameLevel* GJGameLevel::createWithResponse(std::string_view backendResponse)
 	GJGameLevel* level = new GJGameLevel();
 	if (!level) return nullptr;
 
-	if(!backendResponse.compare("-1"))
+	if (!backendResponse.compare("-1"))
 	{
 		delete level;
 		return nullptr;
@@ -48,9 +48,9 @@ GJGameLevel* GJGameLevel::createWithResponse(std::string_view backendResponse)
 	for (size_t i = 0; i < stuff.size(); i += 2)
 	{
 		if (!stuff[i + 1].empty())
-			levelResponse.insert({stuff[i], stuff[i + 1]});
+			levelResponse.insert({ stuff[i], stuff[i + 1] });
 	}
-	
+
 	if (levelResponse.contains("1")) level->_levelID = GameToolbox::stoi(levelResponse["1"]);
 	if (levelResponse.contains("2")) level->_levelName = _toString(levelResponse["2"]);
 	if (levelResponse.contains("3")) level->_description = _toString(levelResponse["3"]);
@@ -86,7 +86,7 @@ GJGameLevel* GJGameLevel::createWithResponse(std::string_view backendResponse)
 	if (levelResponse.contains("45")) level->_objects = GameToolbox::stoi(levelResponse["45"]);
 	if (levelResponse.contains("46")) level->_editorTime = GameToolbox::stoi(levelResponse["46"]);
 	if (levelResponse.contains("47")) level->_editorTimeTotal = GameToolbox::stoi(levelResponse["47"]);
-	
+
 	return level;
 }
 
@@ -115,22 +115,50 @@ std::string GJGameLevel::decompressLvlStr(std::string compressedLvlStr)
 {
 	if (compressedLvlStr.empty()) return "";
 
+	size_t start = compressedLvlStr.find_first_not_of(" \t\n\r\f\v");
+	if (start == std::string::npos) return "";
+	compressedLvlStr = compressedLvlStr.substr(start);
+
+	size_t end = compressedLvlStr.find_last_not_of(" \t\n\r\f\v");
+	if (end != std::string::npos) {
+		compressedLvlStr = compressedLvlStr.substr(0, end + 1);
+	}
+
 	std::replace(compressedLvlStr.begin(), compressedLvlStr.end(), '_', '/');
 	std::replace(compressedLvlStr.begin(), compressedLvlStr.end(), '-', '+');
 
+	for (char c : compressedLvlStr) {
+		if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+			(c >= '0' && c <= '9') || c == '+' || c == '/' || c == '=')) {
+
+			return "";
+		}
+	}
+
 	std::string decoded = base64_decode(compressedLvlStr);
+
+	if (decoded.empty() || decoded.length() < 2) {
+		return "";
+	}
 
 	unsigned char* data = (unsigned char*)decoded.data();
 	unsigned char* a = nullptr;
 	ssize_t deflatedLen = ax::ZipUtils::inflateMemory(data, decoded.length(), &a);
 
-	std::string levelString = (char *)a;
+	if (deflatedLen <= 0 || a == nullptr) {
+		if (a) free(a);
+		return "";
+	}
 
+	std::string levelString((char*)a, deflatedLen);
 	free(a);
+
+	if (levelString.empty()) {
+		return "";
+	}
 
 	return levelString;
 }
-
 std::string GJGameLevel::compressLvlStr(std::string decompressedLvlStr, int gdLevelID) {
 	// ax::ZipUtils::
 	// std::string compressed_data = gzip::compress(decompressedLvlStr.c_str(), decompressedLvlStr.size());

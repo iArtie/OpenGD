@@ -66,8 +66,8 @@ bool ResourcesLoadingLayer::init()
 	_fu->addSearchPath("icons", true);
 #else
 	// En Windows/PC, los recursos viven en la carpeta "Content"
-	_fu->addSearchPath("Content/icons", true);
-	_fu->addSearchPath("Content", true);
+	_fu->addSearchPath("icons", true);
+	_fu->addSearchPath("", true);
 #endif
 	// --------------------------------
 
@@ -90,13 +90,13 @@ bool ResourcesLoadingLayer::init()
 	auto winSize = _dir->getWinSize();
 	_posMiddle = { winSize.width / 2, winSize.height / 2 };
 
-	if(auto path = _gm->get<std::string>("resources_path"); !path.empty() && _fu->isDirectoryExist(path))
+	/*if(auto path = _gm->get<std::string>("resources_path"); !path.empty() && _fu->isDirectoryExist(path))
 	{
 		_fu->addSearchPath(path, true);
 		_fu->addSearchPath(path + "\\icons", true);
 		loadLoadingLayer();
 		return true;
-	}
+	}*/
 
 // 3. Controladores específicos por plataforma de forma limpia
 #if (AX_TARGET_PLATFORM == AX_PLATFORM_ANDROID)
