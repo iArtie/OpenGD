@@ -17,10 +17,16 @@
 *************************************************************************/
 
 #include "GarageLayer.h"
+#include "GameToolbox/enums.h"
 #include "MenuItemSpriteExtra.h"
+#include "MenuItemToggler.h"
 #include "MenuLayer.h"
 #include "SimplePlayer.h"
 #include "GameManager.h"
+#include "TextInputNode.h"
+#include "fmt/format.h"
+#include "math/Rect.h"
+#include "math/Vec2.h"
 #include "ui/UITextField.h"
 #include "2d/Transition.h"
 #include "2d/Menu.h"
@@ -33,6 +39,7 @@
 #include "GameToolbox/log.h"
 #include "GameToolbox/conv.h"
 #include "GameToolbox/nodes.h"
+#include <string>
 
 USING_NS_AX;
 
@@ -40,8 +47,10 @@ Scene* GarageLayer::scene(bool popSceneWithTransition)
 {
 	auto s = Scene::create();
 	auto garage = GarageLayer::create();
+	//garage->_modePages = ;
 	garage->_popSceneWithTransition = popSceneWithTransition;
 	s->addChild(garage);
+
 	return s;
 }
 
@@ -72,6 +81,7 @@ bool GarageLayer::init()
 	GameToolbox::createBG(this, { 150, 150, 150 });
 	GameToolbox::createCorners(this, true, false, true, true);
 
+	
 	_userNameField = ui::TextField::create("Username", GameToolbox::getTextureString("bigFont.fnt"), 20);
 	_userNameField->setPlaceHolderColor({120, 170, 240});
 	_userNameField->setMaxLength(10);
@@ -81,20 +91,28 @@ bool GarageLayer::init()
 	_userNameField->setPosition({ size.width / 2, size.height - 34 });
 	this->addChild(_userNameField);
 
+	/* pendiente, parece estar bugeada la escala
+	_usernameInput = TextInputNode::create(180, 50, GameToolbox::getTextureString("bigFont.fnt"), "Username", 1);
+	_usernameInput->setPosition({ size.width / 2, size.height - 34 });
+	_usernameInput->setString("Player");
+	_usernameInput->setMaxDisplayLabelScale(5);
+	//to do: max label length
+	_usernameInput->setPlaceholderColor({255, 0, 255});
+	_usernameInput->setPlaceholderScale(.7f);
+	_usernameInput->setAllowedChars("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+	this->addChild(_usernameInput, 20);*/
+
 	auto line = Sprite::createWithSpriteFrameName("floorLine_001.png");
 	line->setBlendFunc(GameToolbox::getBlending());
-	line->setPosition({ size.width / 2, size.height / 2 + 50 });
+	line->setPosition(size / 2 + Vec2(0, 50));
 	this->addChild(line);
 
 	_iconPrev = SimplePlayer::create(0); // 132
 	_iconPrev->updateGamemode(gm->getSelectedIcon(gm->_mainSelectedMode), gm->_mainSelectedMode);
 	_iconPrev->setPosition({line->getPositionX(), line->getPositionY() + 25});
-	_iconPrev->setMainColor({125, 0, 255});
-	_iconPrev->setSecondaryColor({0, 255, 255});
-	_iconPrev->setGlow(true);
-	_iconPrev->setGlowColor({0, 255, 0});
 	_iconPrev->setScale(1.6f);
 	this->addChild(_iconPrev);
+	this->updatePlayerColors();
 
 	this->setupIconSelect();
 
@@ -156,14 +174,25 @@ bool GarageLayer::init()
 	return true;
 }
 
+void GarageLayer::updatePlayerColors() {
+	_iconPrev->setMainColor({125, 0, 255});
+	_iconPrev->setSecondaryColor({0, 255, 255});
+	_iconPrev->setGlow(true);
+	_iconPrev->setGlowColor({0, 255, 0});
+}
+
 int GarageLayer::selectedGameModeInt()
 {
-	if (_selectedMode == IconType::kIconTypeSpecial)
-		return 7;
-	if (_selectedMode == IconType::kIconTypeDeathEffect)
-		return 8;
+	return this->modeToPageInt(_selectedMode);
+}
 
-	return static_cast<int>(_selectedMode);
+int GarageLayer::modeToPageInt(IconType mode) {
+	if (mode == IconType::kIconTypeSpecial)
+		return _modePages.size() - 1;
+	if (mode == IconType::kIconTypeDeathEffect)
+		return _modePages.size();
+
+	return static_cast<int>(mode);
 }
 
 void GarageLayer::createStat(const char* sprite, const char* statKey)
@@ -188,10 +217,10 @@ void GarageLayer::setupIconSelect()
 {
 	const auto& size = Director::getInstance()->getWinSize();
 
-	auto bg = ui::Scale9Sprite::create(GameToolbox::getTextureString("square02_001.png"));
+	auto bg = ui::Scale9Sprite::create(GameToolbox::getTextureString("square02_001.png"), Rect(0, 0, 80, 80));
 	bg->setContentSize({385, 100});
 	bg->setOpacity(75);
-	bg->setPosition({size.width / 2, size.height / 2 - 65});
+	bg->setPosition(size / 2 + Vec2(0, -65));
 	this->addChild(bg);
 
 	auto unlock = Sprite::createWithSpriteFrameName("GJ_unlockTxt_001.png");
@@ -200,85 +229,60 @@ void GarageLayer::setupIconSelect()
 
 	auto menu = Menu::create();
 
-	for (int i = 0; i < 9; i++)
+	for (int i = 0; i <= 8; i++)
 	{
-		auto s1 = Sprite::createWithSpriteFrameName(this->getSpriteName(i, false));
-		s1->setScale(.9f);
-		auto s2 = Sprite::createWithSpriteFrameName(this->getSpriteName(i, true));
-		s2->setScale(s1->getScale());
-
-		auto i1 = MenuItemSpriteExtra::create(s1, [&](Node* a)
-		{
-			int tag = a->getTag();
-			int page = _modePages[tag];
-
-			IconType mode;
-			if (tag == 7)
-				mode = IconType::kIconTypeSpecial;
-			else if (tag == 8)
-				mode = IconType::kIconTypeDeathEffect;
-			else
-				mode = static_cast<IconType>(tag);
-
-			this->setupPage(mode, page);
-		});
-		i1->setTag(i);
-		menu->addChild(i1);
-
 		//auto i1 = MenuItemToggler::create(s1, s2, this, menu_selector(SaiGarageLayer::onSelectTab));
 		//i1->setSizeMult(1.2f);
 		//i1->setTag(i);
 		//i1->setClickable(false);
 		//menu->addChild(i1);
+		createIconButton(static_cast<IconType>(i),menu);
 	}
 
-	menu->alignItemsHorizontallyWithPadding(0);
+	createIconButton(kIconTypeSpecial, menu);
+	createIconButton(kIconTypeDeathEffect, menu);
+
+	menu->alignItemsHorizontallyWithPadding(2.0f);
 	menu->setPosition({size.width / 2, unlock->getPositionY() + 30 + 3});
 	this->addChild(menu);
 
 	auto menuArr = Menu::create();
 	menuArr->setPosition({0, 0});
 
-	// Robtop aqui hace otra peruanada de usar "GJ_arrow_%02d_001.png" para las flechas etc...
-
 	auto arrow1 = Sprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
 	arrow1->setScale(.8f);
 
 	auto onChangePage = [this](bool up)
-		{
-			int gameMode = selectedGameModeInt();
-			int page = this->_modePages[gameMode];
+	{
+		int page = this->_modePages[_selectedMode];
 
-			int maxpage = (GameToolbox::getValueForGamemode(_selectedMode) - 1) / 36;
+		int maxpage = (GameToolbox::getValueForGamemode(_selectedMode) - 1) / 36;
 
-			if (up) {
-				_modePages[gameMode] = (page >= maxpage) ? 0 : page + 1;
-			}
-			else {
-				_modePages[gameMode] = (page <= 0) ? maxpage : page - 1;
-			}
+		if (up) {
+			_modePages[_selectedMode] = (page >= maxpage) ? 0 : page + 1;
+		}
+		else {
+			_modePages[_selectedMode] = (page <= 0) ? maxpage : page - 1;
+		}
 
-			// ELIMINAMOS la línea de GameToolbox::log que causa la excepción de fmt
-			this->setupPage(_selectedMode, _modePages[gameMode]);
-		};
-
-	// Botón Izquierdo (capturando onChangePage por valor para evitar el crash)
-	auto arrowLeftBtn = MenuItemSpriteExtra::create(arrow1, [onChangePage](Node*) {
+		this->setupPage(_selectedMode, _modePages[_selectedMode]);
+	};
+	
+	_leftArrow = MenuItemSpriteExtra::create(arrow1, [onChangePage](Node*) {
 		onChangePage(false);
 		});
-	arrowLeftBtn->setPosition({ bg->getPositionX() - 220, bg->getPositionY() });
-	menuArr->addChild(arrowLeftBtn);
+	_leftArrow->setPosition({ bg->getPositionX() - 220, bg->getPositionY() });
+	menuArr->addChild(_leftArrow);
 
 	auto arrow2 = Sprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
 	arrow2->setScale(.8f);
 	arrow2->setFlippedX(true);
 
-	// Botón Derecho (capturando onChangePage por valor para evitar el crash)
-	auto arrowRightBtn = MenuItemSpriteExtra::create(arrow2, [onChangePage](Node*) {
+	_rightArrow = MenuItemSpriteExtra::create(arrow2, [onChangePage](Node*) {
 		onChangePage(true);
 		});
-	arrowRightBtn->setPosition({ bg->getPositionX() + 220, bg->getPositionY() });
-	menuArr->addChild(arrowRightBtn);
+	_rightArrow->setPosition({ bg->getPositionX() + 220, bg->getPositionY() });
+	menuArr->addChild(_rightArrow);
 
 	this->addChild(menuArr);
 
@@ -288,37 +292,76 @@ void GarageLayer::setupIconSelect()
 
 	auto gm = GameManager::getInstance();
 
-	// Pasamos -1 y dejamos que setupPage aplique la matemática original de RobTop
 	this->setupPage(gm->_mainSelectedMode, -1);
 }
 
-const char* GarageLayer::getSpriteName(int id, bool actived)
+void GarageLayer::createIconButton(IconType mode, Menu* parent) 
 {
-	switch (id)
+	auto s1 = Sprite::createWithSpriteFrameName(this->getSpriteName(mode, false));
+	s1->setScale(.9f);
+	auto s2 = Sprite::createWithSpriteFrameName(this->getSpriteName(mode, true));
+	s2->setScale(s1->getScale());
+
+	auto item = MenuItemToggler::create(s1, s2, [&](Node* a)
 	{
-		case 0: return actived ? "gj_iconBtn_on_001.png" : "gj_iconBtn_off_001.png";
-		case 1:	return actived ? "gj_shipBtn_on_001.png" : "gj_shipBtn_off_001.png";
-		case 2: return actived ? "gj_ballBtn_on_001.png" : "gj_ballBtn_off_001.png";
-		case 3: return actived ? "gj_birdBtn_on_001.png" : "gj_birdBtn_off_001.png";
-		case 4: return actived ? "gj_dartBtn_on_001.png" : "gj_dartBtn_off_001.png";
-		case 5: return actived ? "gj_robotBtn_on_001.png" : "gj_robotBtn_off_001.png";
-		case 6: return actived ? "gj_spiderBtn_on_001.png" : "gj_spiderBtn_off_001.png";
-		case 7: return actived ? "gj_streakBtn_on_001.png" : "gj_streakBtn_off_001.png";
-		case 8: return actived ? "gj_explosionBtn_on_001.png" : "gj_explosionBtn_off_001.png";
+		int tag = a->getTag();
+		IconType mode = static_cast<IconType>(tag);
+		
+		int page = _modePages[mode];
+
+		this->setupPage(mode, page);
+	});
+	item->setSizeMult(1.2f);
+	item->setTag(static_cast<int>(mode));
+	parent->addChild(item);
+
+	_tabButtons.pushBack(item);
+}
+
+
+std::string GarageLayer::getSpriteName(IconType mode, bool actived)
+{
+	const char* name;
+	switch (mode)
+	{
+		case kIconTypeShip: name = "ship"; break;
+		case kIconTypeBall: name = "ball"; break;
+		case kIconTypeUfo: name = "bird"; break;
+		case kIconTypeWave: name = "dart"; break;
+		case kIconTypeRobot: name = "robot"; break;
+		case kIconTypeSpider: name = "spider"; break;
+		case kIconTypeSwing: name = "swing"; break;
+		case kIconTypeSpecial: name = "streak"; break;
+		case kIconTypeDeathEffect: name = "explosion"; break;
+		case kIconTypeCube: 
+		default: name = "icon";
 	}
-	return nullptr;
+	return fmt::format("gj_{}Btn_{}_001.png", name, actived ? "on" : "off");
 }
 
 void GarageLayer::setupPage(IconType type, int page)
 {
+	_iconID = 0;
 	auto gm = GameManager::getInstance();
 	_selectedMode = type;
 
-	// Obtenemos el ícono activo y el total de íconos (Traducción de activeIconForType y countForType)
+	MenuItemToggler* currentButton = nullptr;
+	for (auto button : _tabButtons) {
+
+		if (button->getTag() == static_cast<int>(type)) currentButton = button;
+
+		button->toggle(false);
+		button->setEnabled(true);
+	}
+
+	currentButton->toggle(true);
+	currentButton->setEnabled(false);
+	
+	// Obtenemos el ï¿½cono activo y el total de ï¿½conos (Traducciï¿½n de activeIconForType y countForType)
 	int activeIcon = gm->getSelectedIcon(type);
 	int totalIcons = GameToolbox::getValueForGamemode(type);
 
-	// Lógica de página por defecto (-1) extraída del descompilado de IDA:
+	// Lï¿½gica de pï¿½gina por defecto (-1) extraï¿½da del descompilado de IDA:
 	// v3 = floorf((float)((active - 1) / 36));
 	if (page == -1)
 	{
@@ -326,28 +369,28 @@ void GarageLayer::setupPage(IconType type, int page)
 		page = (v3 > 0.0f) ? static_cast<int>(v3) : 0;
 	}
 
-	// Guardamos la página actual en nuestro registro
-	_modePages[selectedGameModeInt()] = page;
-	GameToolbox::log("setupPage: Mode {}, Page {}", (int)type, page);
+	_modePages[_selectedMode] = page;
+	//GameToolbox::log("setupPage: Mode {}, Page {} Total: {}", (int)type, page, totalIcons);
 
 	auto size = Director::getInstance()->getWinSize();
 
-	if (_menuIcons)
-		this->removeChild(_menuIcons);
+	if (_menuIcons) this->removeChild(_menuIcons);
 
 	_menuIcons = Menu::create();
 	_menuIcons->setPosition(0, 0);
 
-	if (_selectSprite != nullptr)
-		_selectSprite->setVisible(false);
+	if (_selectSprite) _selectSprite->setVisible(false);
 
-	// Límites exactos de la página actual
 	int startIdx = (page * 36) + 1;
 	int maxIdx = std::min((page + 1) * 36, totalIcons);
 
-	// Variables de cuadrícula (Corregido para que no se desfase en páginas > 0)
 	int col = 0;
 	int row = 0;
+
+	int totalPages = (totalIcons == 0) ? 1 : ((totalIcons - 1) / 36) + 1;
+
+	_leftArrow->setVisible(totalPages > 1);
+	_rightArrow->setVisible(totalPages > 1);
 
 	for (int i = startIdx; i <= maxIdx; i++)
 	{
@@ -380,7 +423,7 @@ void GarageLayer::setupPage(IconType type, int page)
 				icono->m_pDomeSprite->setVisible(false);
 			}
 
-			// Escala estándar. El SimplePlayer se encargará de achicar los rebeldes por dentro
+			// Escala estï¿½ndar. El SimplePlayer se encargarï¿½ de achicar los rebeldes por dentro
 			float iconScale = 27.0f / icono->m_pMainSprite->getContentSize().width;
 
 			icono->setPosition(iconPos);
@@ -390,10 +433,18 @@ void GarageLayer::setupPage(IconType type, int page)
 
 		auto btn = MenuItemSpriteExtra::create(browserItem, [&](Node* a)
 			{
-				_iconPrev->updateGamemode(a->getTag(), _selectedMode);
+				if (a->getTag() != _iconID) {
+					_iconID = a->getTag();
+				} else {
+					GameToolbox::log("Opening info popup {} {}", static_cast<int>(_selectedMode), a->getTag());
+				}
+				if (_selectedMode != kIconTypeSpecial && _selectedMode != kIconTypeDeathEffect) {
+					_iconPrev->updateGamemode(a->getTag(), _selectedMode);
+					GameManager::getInstance()->_mainSelectedMode = _selectedMode;
+				}
+				
 				auto gm = GameManager::getInstance();
 				gm->setSelectedIcon(_selectedMode, a->getTag());
-				gm->_mainSelectedMode = _selectedMode;
 				_selectSprite->setPosition(a->getPosition());
 				_selectSprite->setVisible(true);
 			});
@@ -401,65 +452,53 @@ void GarageLayer::setupPage(IconType type, int page)
 		btn->setTag(i);
 		btn->setPosition({ size.width / 2 - 165 + (col * 30), size.height / 2 - 65 + 30 - (row * 30) });
 		_menuIcons->addChild(btn);
-
-		// --- SISTEMA DE PUNTOS DE NAVEGACIÓN (NAV DOTS) ---
-		if (!_navDotMenu) {
-			_navDotMenu = Menu::create();
-			this->addChild(_navDotMenu);
-		}
-
-		_navDotMenu->removeAllChildren(); // Limpiamos los puntos de la pestaña anterior
-
-		// Calculamos el total de páginas (redondeando hacia arriba)
-		int totalPages = (totalIcons == 0) ? 1 : ((totalIcons - 1) / 36) + 1;
-
-		// Si hay más de una página (ej. Cubos, Naves), mostramos los puntos
-		if (totalPages > 1) {
-			_navDotMenu->setVisible(true);
-
-			for (int p = 0; p < totalPages; p++) {
-				// Si el punto corresponde a la página actual, lo encendemos
-				const char* dotName = (p == page) ? "gj_navDotBtn_on_001.png" : "gj_navDotBtn_off_001.png";
-				auto dotSprite = Sprite::createWithSpriteFrameName(dotName);
-
-				// Si quieres que resalte un poco más, RobTop a veces los escala ligeramente
-				// dotSprite->setScale(1.1f);
-
-				// Capturamos 'p' (la página del punto) y 'type' por valor para memoria segura
-				auto dotBtn = MenuItemSpriteExtra::create(dotSprite, [this, type, p](Node*) {
-					_modePages[selectedGameModeInt()] = p; // Sincronizamos la memoria de la página
-					this->setupPage(type, p);             // Recargamos el garaje en esa página
-					});
-
-				_navDotMenu->addChild(dotBtn);
-			}
-
-			// RobTop alinea estos puntos horizontalmente con un espacio exacto de 6.0f
-			_navDotMenu->alignItemsHorizontallyWithPadding(6.0f);
-
-			// Los posicionamos justo debajo del recuadro negro de los iconos
-			_navDotMenu->setPosition({ size.width / 2, size.height / 2 - 135.0f });
-		}
-		// Si solo hay una página (ej. Robot, Araña), ocultamos los puntos
-		else {
-			_navDotMenu->setVisible(false);
-		}
-		// --------------------------------------------------
-
-		// Traducción del puntero m_cursor1 del ensamblador
+	
 		if (i == activeIcon)
 		{
 			_selectSprite->setPosition(btn->getPosition());
 			_selectSprite->setVisible(true);
 		}
 
-		// Avanzamos en la cuadrícula
 		col++;
 		if (col >= _numPerRow)
 		{
 			col = 0;
 			row++;
 		}
+	}
+
+	// --- SISTEMA DE PUNTOS DE NAVEGACIï¿½N (NAV DOTS) ---
+	if (!_navDotMenu) {
+		_navDotMenu = Menu::create();
+		this->addChild(_navDotMenu);
+	}
+
+	_navDotMenu->removeAllChildren();
+
+	if (totalPages > 1) {
+		_navDotMenu->setVisible(true);
+
+		for (int p = 0; p < totalPages; p++) {
+			// Si el punto corresponde a la pï¿½gina actual, lo encendemos
+			const char* dotName = (p == page) ? "gj_navDotBtn_on_001.png" : "gj_navDotBtn_off_001.png";
+			auto dotSprite = Sprite::createWithSpriteFrameName(dotName);
+
+			// dotSprite->setScale(1.1f);
+
+			auto dotBtn = MenuItemSpriteExtra::create(dotSprite, [this, type, p](Node*) {
+				_modePages[_selectedMode] = p;
+				this->setupPage(type, p);
+				});
+
+			_navDotMenu->addChild(dotBtn);
+		}
+
+		_navDotMenu->alignItemsHorizontallyWithPadding(6.0f);
+
+		_navDotMenu->setPosition({ size.width / 2, size.height / 2 - 135.0f });
+	}
+	else {
+		_navDotMenu->setVisible(false);
 	}
 
 	this->addChild(_menuIcons);

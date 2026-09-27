@@ -18,22 +18,29 @@
 
 #pragma once
 #include <array>
+#include <string>
 
+#include "2d/MenuItem.h"
 #include "2d/Scene.h"
 
 #include "GameToolbox/enums.h"
+#include "TextInputNode.h"
 class SimplePlayer;
+class TextInputNode;
+class MenuItemSpriteExtra;
+class MenuItemToggler;
 
 namespace ax 
 { 
 	class Menu;
 	class Sprite;
-
 	namespace ui 
 	{ 
 		class TextField; 
 	}
 }
+
+//#define MODE_PAGES_COUNT 8;
 
 
 class GarageLayer : public ax::Scene {
@@ -41,22 +48,31 @@ public:
 	static ax::Scene* scene(bool popSceneWithTransition = false);
 	static GarageLayer* create();
 	bool init();
+	void updatePlayerColors();
 	void setupIconSelect();
-	const char* getSpriteName(int id, bool actived);
+	void createIconButton(IconType mode, ax::Menu* parent);
+	std::string getSpriteName(IconType mode, bool actived);
 	void setupPage(IconType mode, int page);
 	void createStat(const char* sprite, const char* statKey);
 	int selectedGameModeInt();
+	int modeToPageInt(IconType mode);
 
 private:
 	bool _popSceneWithTransition;
 	SimplePlayer* _iconPrev;
 	ax::ui::TextField* _userNameField;
+	TextInputNode* _usernameInput;
 	ax::Menu* _menuIcons;
 	ax::Sprite* _selectSprite;
 	ax::Menu* _navDotMenu = nullptr;
+	ax::Vector<MenuItemToggler*> _tabButtons;
 	int _numPerRow = 12;
 	int _numPerColumn = 3;
 	int _stats = 0;
 	IconType _selectedMode;
-	std::array<int, 8> _modePages{0};
+	std::map<IconType, int> _modePages;
+	int _iconID;
+	MenuItemSpriteExtra* _leftArrow = nullptr;
+	MenuItemSpriteExtra* _rightArrow = nullptr;
+	
 };
